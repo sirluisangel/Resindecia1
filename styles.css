@@ -17,12 +17,13 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
-body{
-  margin:0;
-  font-family:'Inter',system-ui,Segoe UI,Roboto,Arial,sans-serif;
-  background:linear-gradient(180deg, var(--bg), var(--bg-2));
-  color:var(--text);
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(circle at top, #0e172a 0%, #0b1220 70%);
+  color: var(--text);
 }
+
 
 /* ---- Layout Dashboard ---- */
 .layout{display:flex;min-height:100vh}
@@ -235,4 +236,32 @@ input:focus,textarea:focus{border-color:#3152a8}
   .report-table { font-size: 0.85rem; }
   .tramite { grid-template-columns: auto 1fr; gap: 8px; }
   .tramite .mini-info { grid-column: 1 / -1; text-align:left; }
+}
+.tramite {
+  display: grid;
+  grid-template-columns: auto 1fr 100px 100px; /* Checkbox, nombre, cantidad, importe */
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed #24335b;
+  border-radius: 12px;
+  background: #0d1630;
+}
+
+.tramite span {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.tramite .cantidad {
+  width: 80px;
+}
+
+.tramite .mini-info {
+  font-size: 0.9rem;
+  color: var(--text);
+  text-align: right;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 8px;
+  border-radius: 8px;
 }

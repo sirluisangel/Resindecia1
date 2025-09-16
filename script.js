@@ -541,3 +541,32 @@
   window.recalcResumen = recalcResumen;
 
 })();
+
+document.querySelectorAll(".chk").forEach(chk => {
+  chk.addEventListener("change", () => {
+    const row = chk.closest(".tramite");
+    const cantidad = row.querySelector(".cantidad");
+    const importe = row.querySelector(".importe");
+
+    if (chk.checked) {
+      cantidad.disabled = false;
+      importe.disabled = false;
+    } else {
+      cantidad.disabled = true;
+      importe.disabled = true;
+      cantidad.value = "";
+      importe.value = "0.00";
+    }
+  });
+});
+
+document.querySelectorAll(".cantidad").forEach(input => {
+  input.addEventListener("input", () => {
+    const row = input.closest(".tramite");
+    const chk = row.querySelector(".chk");
+    const importe = row.querySelector(".importe");
+    const costo = parseFloat(chk.dataset.cost);
+    const cantidad = parseInt(input.value) || 0;
+    importe.value = (cantidad * costo).toFixed(2);
+  });
+});
