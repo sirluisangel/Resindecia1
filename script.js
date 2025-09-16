@@ -422,3 +422,81 @@ function mostrarReportes() {
     });
   };
 }
+
+// === Rellenar tabla de reportes ===
+function cargarReportes(filtroInicio, filtroFin) {
+  const tbody = document.querySelector("#tablaReportes tbody");
+  tbody.innerHTML = "";
+
+  dbPromise.then(db => {
+    const tx = db.transaction("tramites", "readonly");
+    return tx.objectStore("tramites").getAll();
+  }).then(registros => {
+    registros
+      .filter(reg => {
+        if (!filtroInicio || !filtroFin) return true;
+        const fecha = new Date(reg.fechaIng);
+        return fecha >= new Date(filtroInicio) && fecha <= new Date(filtroFin);
+      })
+      .forEach(reg => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${reg.np}</td>
+          <td>${reg.nombre}</td>
+          <td>${reg.fechaIng}</td>
+          <td>${reg.ubicacion || "-"}</td>
+          <td>${reg.localidad || "-"}</td>
+          <td>${reg.permisos.map(p => `${p.nombre} (${p.cantidad})`).join(", ")}</td>
+          <td>${reg.telefono || "-"}</td>
+          <td>${reg.ordenPago || "-"}</td>
+          <td>${reg.cantidadGlobal || "-"}</td>
+          <td>${reg.reciboPago || "-"}</td>
+          <td>${reg.estatus}</td>
+          <td>${reg.obs || "-"}</td>
+          <td>$${reg.importeTotal}</td>
+          <td>
+            ${reg.pdf ? `<button class="btn small" onclick="verPDF('${reg.pdf}')"><i class="fa-solid fa-file-pdf"></i> Ver</button>` : "Sin PDF"}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+  });
+}
+
+// Ver PDF en nueva ventana
+function verPDF(base64) {
+  const byteCharacters = atob(base64.split(",")[1]);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+}
+
+// Exportar Excel
+document.getElementById("btnExportExcel").addEventListener("click", () => {
+  const wb = XLSX.utils.table_to_book(document.getElementById("tablaReportes"), {sheet:"Reportes"});
+  XLSX.writeFile(wb, "reportes.xlsx");
+});
+
+// Exportar PDF con jsPDF
+document.getElementById("btnExportPDF").addEventListener("click", () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("l", "pt", "a4");
+  doc.text("Reportes de Trámites", 40, 30);
+  doc.autoTable({ html: "#tablaReportes", startY: 50 });
+  doc.save("reportes.pdf");
+});
+
+// Filtrar
+document.getElementById("btnFiltrar").addEventListener("click", () => {
+  const inicio = document.getElementById("filtroInicio").value;
+  const fin = document.getElementById("filtroFin").value;
+  cargarReportes(inicio, fin);
+});
+
+// Cargar inicial
+cargarReportes();

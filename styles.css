@@ -210,3 +210,38 @@ input:focus,textarea:focus{border-color:#3152a8}
   font-size: 14px;
   color: #555;
 }
+/* Reportes */
+.reportes-container, .table-wrap {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+#tablaReportes {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#tablaReportes th, #tablaReportes td {
+  border: 1px solid #34495e;
+  padding: 0.5rem;
+  text-align: center;
+  color: #fff;
+}
+
+#tablaReportes th {
+  background: #1b263b;
+}
+
+#tablaReportes tr:nth-child(even) {
+  background: #2c3e50;
+}
+
+#tablaReportes tr:hover {
+  background: #34495e;
+}
+
+.actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+}
