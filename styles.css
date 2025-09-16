@@ -31,7 +31,7 @@ body {
   width:270px;min-width:240px;background:rgba(19,28,49,.9);
   backdrop-filter: blur(6px);
   border-right:1px solid var(--border);
-  padding:20px;position:sticky;top:0;height:100vh
+  padding:20px;position:sticky;top:0;height:192vh
 }
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.2rem;margin-bottom:16px}
 .brand i{color:var(--primary)}
