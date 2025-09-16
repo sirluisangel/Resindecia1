@@ -8,7 +8,7 @@
   openReq.onupgradeneeded = (e) => {
     dbAgenda = e.target.result;
     if (!dbAgenda.objectStoreNames.contains("tramites")) {
-      const store = dbAgenda.createObjectStore("tramites", { keyPath: "folio" }); // folio como key
+      const store = dbAgenda.createObjectStore("tramites", { keyPath: "folio" });
       store.createIndex("fechaIng", "fechaIng", { unique: false });
       store.createIndex("usuario", "usuario", { unique: false });
     }
@@ -25,7 +25,6 @@
   const currency = (n) => `$${Number(n || 0).toFixed(2)}`;
 
   function initApp() {
-    // verify login
     const user = localStorage.getItem("sessionUser") || "Invitado";
     $("#userBadge").textContent = user;
 
@@ -55,14 +54,13 @@
       });
     });
 
-    // theme toggle (keeps your CSS)
     $("#toggleTheme")?.addEventListener("click", () => document.body.classList.toggle("light"));
 
-    // set default fechaIng today if empty
+    // default fechaIng
     const hoy = new Date().toISOString().slice(0, 10);
     if (!$("#fechaIng").value) $("#fechaIng").value = hoy;
 
-    // tramites quantity enable/disable
+    // tramites enable/disable cantidad + mostrar importe por permiso
     $$(".chk").forEach(chk => {
       chk.addEventListener("change", () => {
         const code = chk.dataset.code;
@@ -77,7 +75,6 @@
         recalcResumen();
       });
     });
-
     $$(".cantidad").forEach(inp => inp.addEventListener("input", recalcResumen));
 
     // buttons
@@ -88,9 +85,9 @@
     $("#btnBuscar").addEventListener("click", buscarDesdeFormulario);
     $("#btnBuscarFolio").addEventListener("click", buscarFolioSeccion);
     $("#btnFiltrarRep").addEventListener("click", loadReportes);
-    $("#btnExportarExcel").addEventListener("click", exportarExcel);
+    $("#btnExportarExcel").addEventListener("click", () => exportarExcel(true));
+    $("#btnExportarPDF").addEventListener("click", () => exportarPDF(true));
 
-    // initial recalc
     recalcResumen();
   }
 
@@ -114,22 +111,39 @@
     const tbody = $("#tablaResumen tbody");
     tbody.innerHTML = "";
     let total = 0;
+    // actualizar mini-info por permiso
+    $$(".mini-info").forEach(mi => mi.textContent = "$0.00");
     items.forEach(it => {
       total += it.importe;
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${it.code}</td><td>${it.cantidad}</td><td>${currency(it.importe)}</td>`;
       tbody.appendChild(tr);
+      // actualizar mini info
+      const mini = document.querySelector(`.mini-info[data-imp-for="${it.code}"]`);
+      if (mini) mini.textContent = currency(it.importe);
     });
     $("#resTotal").textContent = currency(total);
     $("#importeTotal").value = total.toFixed(2);
   }
 
-  // leer formulario completo
-  function leerFormulario() {
+  // leer formulario completo (incluye PDF blob si existe)
+  async function leerFormulario() {
     const items = obtenerItems();
     const total = items.reduce((s, it) => s + it.importe, 0);
+    const fileInput = $("#pdfFile");
+    let pdfBlob = null;
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      // opcional: limitar tamaño 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        await Swal.fire("Archivo grande", "El PDF excede 10MB. Usa un archivo más pequeño.", "warning");
+        throw new Error("PDF demasiado grande");
+      }
+      pdfBlob = file.slice(0, file.size, file.type);
+    }
+
     const payload = {
-      folio: $("#np").value.trim() || $("#claveExp").value.trim(),
+      folio: $("#np").value.trim() || (`folio_${Date.now()}`),
       folioExp: $("#np").value.trim(),
       fechaIng: $("#fechaIng").value,
       nombre: $("#nombre").value.trim(),
@@ -154,12 +168,13 @@
       estatus: $("#estatus").value,
       usuario: localStorage.getItem("sessionUser") || "Invitado",
       fecha_guardado: new Date().toISOString().slice(0,10),
-      hora_guardado: new Date().toLocaleTimeString()
+      hora_guardado: new Date().toLocaleTimeString(),
+      pdf: pdfBlob // Blob or null
     };
     return payload;
   }
 
-  // Validaciones mínimas
+  // Validaciones
   function validarAntes() {
     if (!$("#np").value.trim()) { Swal.fire("Falta NP", "Ingresa NP (folio)", "warning"); return false; }
     if (!$("#fechaIng").value) { Swal.fire("Falta fecha", "Selecciona fecha de ingreso", "warning"); return false; }
@@ -168,46 +183,56 @@
     return true;
   }
 
-  // Guardar
-  function guardarRegistro() {
-    if (!validarAntes()) return;
-    const data = leerFormulario();
-    const tx = dbAgenda.transaction("tramites", "readwrite");
-    const store = tx.objectStore("tramites");
-    const get = store.get(data.folio);
-    get.onsuccess = () => {
-      if (get.result) {
-        Swal.fire({
-          title: "El folio ya existe",
-          text: "¿Deseas sobrescribirlo?",
-          showCancelButton: true
-        }).then(r => {
-          if (r.isConfirmed) {
-            store.put(data);
-            Swal.fire("Actualizado", "Registro actualizado", "success");
-          }
-        });
-      } else {
-        store.add(data);
-        Swal.fire("Guardado", "Registro creado en agenda", "success");
-      }
-    };
-    get.onerror = () => Swal.fire("Error", "No se pudo acceder a DB", "error");
+  // Guardar: guarda todo incluido pdf blob
+  async function guardarRegistro() {
+    try {
+      if (!validarAntes()) return;
+      const data = await leerFormulario();
+      const tx = dbAgenda.transaction("tramites", "readwrite");
+      const store = tx.objectStore("tramites");
+      const get = store.get(data.folio);
+      get.onsuccess = () => {
+        if (get.result) {
+          Swal.fire({
+            title: "El folio ya existe",
+            text: "¿Deseas sobrescribirlo?",
+            showCancelButton: true
+          }).then(r => {
+            if (r.isConfirmed) {
+              store.put(data);
+              tx.oncomplete = () => { Swal.fire("Actualizado", "Registro actualizado", "success"); loadReportes(); }
+            }
+          });
+        } else {
+          store.add(data);
+          tx.oncomplete = () => { Swal.fire("Guardado", "Registro creado en agenda", "success"); loadReportes(); }
+        }
+      };
+      get.onerror = () => Swal.fire("Error", "No se pudo acceder a DB", "error");
+    } catch (err) {
+      if (err.message !== "PDF demasiado grande") console.error(err);
+    }
   }
 
-  // Actualizar
-  function actualizarRegistro() {
-    if (!validarAntes()) return;
-    const data = leerFormulario();
-    const tx = dbAgenda.transaction("tramites", "readwrite");
-    const store = tx.objectStore("tramites");
-    const get = store.get(data.folio);
-    get.onsuccess = () => {
-      if (get.result) {
-        store.put(data);
-        Swal.fire("Actualizado", "Registro actualizado", "success");
-      } else Swal.fire("No existe", "No se encontró ese folio", "warning");
-    };
+  // Actualizar (similar a guardar)
+  async function actualizarRegistro() {
+    try {
+      if (!validarAntes()) return;
+      const data = await leerFormulario();
+      const tx = dbAgenda.transaction("tramites", "readwrite");
+      const store = tx.objectStore("tramites");
+      const get = store.get(data.folio);
+      get.onsuccess = () => {
+        if (get.result) {
+          // si no adjuntó PDF ahora, mantenemos el existente
+          if (!data.pdf && get.result.pdf) data.pdf = get.result.pdf;
+          store.put(data);
+          tx.oncomplete = () => { Swal.fire("Actualizado", "Registro actualizado", "success"); loadReportes(); }
+        } else Swal.fire("No existe", "No se encontró ese folio", "warning");
+      };
+    } catch (err) {
+      if (err.message !== "PDF demasiado grande") console.error(err);
+    }
   }
 
   // Eliminar
@@ -233,17 +258,18 @@
     $("#formPagos").reset();
     $$(".cantidad").forEach(i => { i.disabled = true; i.value = ""; });
     $$(".chk").forEach(c => c.checked = false);
+    $$(".mini-info").forEach(mi => mi.textContent = "$0.00");
     recalcResumen();
   }
 
-  // Buscar por folio y rellenar (desde formulario)
+  // Buscar y rellenar desde formulario
   function buscarDesdeFormulario() {
     const folio = $("#np").value.trim();
     if (!folio) return Swal.fire("Falta folio", "Escribe el folio a buscar", "warning");
     buscarYRellenar(folio);
   }
 
-  // Buscar por folio en sección buscar (mostrar desglose)
+  // Buscar por folio en sección buscar y mostrar desglose con botón ver pdf
   function buscarFolioSeccion() {
     const folio = $("#buscarFolio").value.trim();
     if (!folio) return Swal.fire("Falta folio", "Escribe el folio a buscar", "warning");
@@ -290,6 +316,18 @@
           cantidad.value = it.cantidad || 0;
         }
       });
+      // if pdf exists, let user know
+      if (r.pdf) {
+        // show small banner with view button
+        $("#resultadoBusqueda").innerHTML = `<div class="desglose"><h3>Expediente: ${r.folio}</h3>
+          <p><strong>Nombre:</strong> ${r.nombre || "-"} — <strong>Fecha:</strong> ${r.fecha_guardado} ${r.hora_guardado}</p>
+          <div style="margin-top:8px"><button class="btn info" id="btnVerPdfBusqueda">📄 Ver PDF</button></div></div>`;
+        $("#btnVerPdfBusqueda").addEventListener("click", () => verPDF(r.folio));
+      } else {
+        $("#resultadoBusqueda").innerHTML = `<div class="desglose"><h3>Expediente: ${r.folio}</h3>
+          <p><strong>Nombre:</strong> ${r.nombre || "-"} — <strong>Fecha:</strong> ${r.fecha_guardado} ${r.hora_guardado}</p>
+          <p class="muted">No tiene PDF adjunto.</p></div>`;
+      }
       recalcResumen();
       Swal.fire("Cargado", "Registro cargado en el formulario", "success");
     };
@@ -297,6 +335,7 @@
   }
 
   function buscarYMostrar(folio) {
+    // similar to buscarYRellenar but for mostrar en desglose con tabla de items y ver pdf
     const tx = dbAgenda.transaction("tramites", "readonly");
     const store = tx.objectStore("tramites");
     const req = store.get(folio);
@@ -316,12 +355,16 @@
           </table>
         </div>
         <p class="muted">Usuario: ${r.usuario || "-"}</p>
+        <div style="margin-top:8px">${r.pdf ? `<button class="btn info" id="btnVerPdfBusqueda">📄 Ver PDF</button>` : `<small class="muted">No tiene PDF adjunto.</small>`}</div>
       `;
+      if (r.pdf) {
+        $("#btnVerPdfBusqueda").addEventListener("click", () => verPDF(r.folio));
+      }
     };
     req.onerror = () => Swal.fire("Error", "No se pudo buscar", "error");
   }
 
-  // Reportes: carga todos los registros, filtra por fechaIng (si se piden)
+  // Reportes: carga todos los registros, filtra por fechaIng (si se piden) y muestra columnas completas
   function loadReportes() {
     const desdeVal = $("#repDesde").value;
     const hastaVal = $("#repHasta").value;
@@ -333,9 +376,8 @@
     const req = store.getAll();
     req.onsuccess = () => {
       let rows = req.result || [];
-      // map date for sorting
       rows = rows.map(r => {
-        const d = r.fechaIng ? new Date(r.fechaIng + "T00:00:00") : new Date(r.fecha_guardado + "T00:00:00");
+        const d = r.fechaIng ? new Date(r.fechaIng + "T00:00:00") : new Date((r.fecha_guardado || "").slice(0,10) + "T00:00:00");
         return { ...r, _dateObj: d };
       });
       if (desde && hasta) rows = rows.filter(r => r._dateObj >= desde && r._dateObj <= hasta);
@@ -345,158 +387,157 @@
       tbody.innerHTML = "";
       rows.forEach(r => {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${r.folio}</td><td>${r.nombre || "-"}</td><td>${r.fechaIng || r.fecha_guardado || "-"}</td><td>${r.hora_guardado || "-"}</td><td>${currency(r.total||0)}</td><td>${r.usuario||"-"}</td>`;
+        // create summary for permisos as "CODE:qty, CODE:qty"
+        const perms = (r.items || []).map(it => `${it.code}:${it.cantidad}`).join(", ");
+        // build row cells
+        tr.innerHTML = `
+          <td>${r.folio || ""}</td>
+          <td>${r.fechaIng || r.fecha_guardado || ""}</td>
+          <td>${r.nombre || ""}</td>
+          <td>${r.ubicacion || ""}</td>
+          <td>${r.localidad || ""}</td>
+          <td>${perms || "-"}</td>
+          <td>${r.fechaProg || ""}</td><td>${r.fechaAut || ""}</td><td>${r.fechaEnt || ""}</td>
+          <td>${r.telefono || ""}</td>
+          <td>${r.ordenPago || ""}</td><td>${r.fechaOrd || ""}</td><td>${r.cantidadGlobal || ""}</td><td>${r.reciboPago || ""}</td>
+          <td>${r.servidor || ""}</td><td>${r.escan || ""}</td><td>${r.noLeg || ""}</td><td>${r.noHojas || ""}</td>
+          <td>${r.claveExp || ""}</td><td>${r.obs || ""}</td><td>${r.estatus || ""}</td>
+          <td>${currency(r.total||0)}</td><td>${r.usuario||""}</td><td>${r.fecha_guardado||""}</td><td>${r.hora_guardado||""}</td>
+          <td class="center"><button class="btn pdf-btn" data-folio="${r.folio}">📄 Ver PDF</button></td>
+        `;
         tbody.appendChild(tr);
       });
+
+      // attach handlers for all pdf buttons
+      $$(".pdf-btn").forEach(b => b.addEventListener("click", (ev) => {
+        const fol = ev.currentTarget.dataset.folio;
+        verPDF(fol);
+      }));
     };
     req.onerror = () => Swal.fire("Error", "No se pudieron cargar reportes", "error");
   }
 
-  // Export a Excel (toda la DB, se puede filtrar primero con loadReportes)
-  function exportarExcel() {
+  // verPDF: obtiene blob de IndexedDB y abre en nueva pestaña
+  function verPDF(folio) {
+    const tx = dbAgenda.transaction("tramites", "readonly");
+    const store = tx.objectStore("tramites");
+    const req = store.get(folio);
+    req.onsuccess = () => {
+      const r = req.result;
+      if (!r) return Swal.fire("No encontrado", "No existe ese folio", "info");
+      if (!r.pdf) return Swal.fire("Sin PDF", "Ese trámite no tiene PDF adjunto.", "info");
+      // crear url y abrir
+      const url = URL.createObjectURL(r.pdf);
+      window.open(url, "_blank");
+      // opcional: revoke after some time (browser handles open)
+      setTimeout(() => URL.revokeObjectURL(url), 1000 * 60);
+    };
+    req.onerror = () => Swal.fire("Error", "No se pudo recuperar el PDF", "error");
+  }
+
+  // Export a Excel (filtrado por fecha si applyFilter true)
+  function exportarExcel(applyFilter = false) {
+    const desdeVal = $("#repDesde").value;
+    const hastaVal = $("#repHasta").value;
+    const desde = desdeVal ? new Date(desdeVal + "T00:00:00") : null;
+    const hasta = hastaVal ? new Date(hastaVal + "T23:59:59") : null;
+
     const tx = dbAgenda.transaction("tramites", "readonly");
     const store = tx.objectStore("tramites");
     const req = store.getAll();
     req.onsuccess = () => {
-      const rows = req.result || [];
-      const data = [["folio","folioExp","fechaIng","hora_guardado","nombre","total","usuario","items"]];
-      rows.forEach(r => data.push([r.folio||"", r.folioExp||"", r.fechaIng||r.fecha_guardado||"", r.hora_guardado||"", r.nombre||"", r.total||0, r.usuario||"", JSON.stringify(r.items||[])]));
+      let rows = req.result || [];
+      rows = rows.map(r => ({ ...r, _dateObj: r.fechaIng ? new Date(r.fechaIng + "T00:00:00") : new Date((r.fecha_guardado||"").slice(0,10) + "T00:00:00") }));
+      if (applyFilter && desde && hasta) rows = rows.filter(r => r._dateObj >= desde && r._dateObj <= hasta);
+      // prepare data array for XLSX
+      const data = rows.map(r => {
+        return {
+          NP: r.folio || "",
+          FechaIngreso: r.fechaIng || r.fecha_guardado || "",
+          Nombre: r.nombre || "",
+          Ubicacion: r.ubicacion || "",
+          Localidad: r.localidad || "",
+          Tramites: (r.items || []).map(it => `${it.code}:${it.cantidad}`).join(", "),
+          FechaProg: r.fechaProg || "",
+          FechaAut: r.fechaAut || "",
+          FechaEnt: r.fechaEnt || "",
+          Telefono: r.telefono || "",
+          OrdenPago: r.ordenPago || "",
+          FechaOrden: r.fechaOrd || "",
+          Cantidad: r.cantidadGlobal || "",
+          Recibo: r.reciboPago || "",
+          ServidorPub: r.servidor || "",
+          Escan: r.escan || "",
+          NoLeg: r.noLeg || "",
+          NoHojas: r.noHojas || "",
+          ClaveExp: r.claveExp || "",
+          Observaciones: r.obs || "",
+          Estatus: r.estatus || "",
+          ImporteTotal: r.total || 0,
+          Usuario: r.usuario || "",
+          FechaGuardado: r.fecha_guardado || "",
+          HoraGuardado: r.hora_guardado || ""
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, "Pagos");
-      XLSX.writeFile(wb, `pagos_${new Date().toISOString().slice(0,10)}.xlsx`);
-      Swal.fire("Exportado", "Archivo Excel generado", "success");
+      XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+      XLSX.writeFile(wb, `reportes_${new Date().toISOString().slice(0,10)}.xlsx`);
+      Swal.fire("Exportado", "Excel generado", "success");
     };
     req.onerror = () => Swal.fire("Error", "No se pudo exportar", "error");
   }
 
-  // expose recalcResumen for other code
-  window.recalcResumen = recalcResumen;
-})();
-function mostrarReportes() {
-  const container = document.getElementById("reportesContainer");
-  container.innerHTML = "";
+  // Export PDF using jsPDF + autoTable
+  function exportarPDF(applyFilter = false) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'pt', 'a4'); // landscape
+    const desdeVal = $("#repDesde").value;
+    const hastaVal = $("#repHasta").value;
+    const desde = desdeVal ? new Date(desdeVal + "T00:00:00") : null;
+    const hasta = hastaVal ? new Date(hastaVal + "T23:59:59") : null;
 
-  let tx = db.transaction("reportes", "readonly");
-  let store = tx.objectStore("reportes");
-  let request = store.getAll();
+    const tx = dbAgenda.transaction("tramites", "readonly");
+    const store = tx.objectStore("tramites");
+    const req = store.getAll();
+    req.onsuccess = () => {
+      let rows = req.result || [];
+      rows = rows.map(r => ({ ...r, _dateObj: r.fechaIng ? new Date(r.fechaIng + "T00:00:00") : new Date((r.fecha_guardado||"").slice(0,10) + "T00:00:00") }));
+      if (applyFilter && desde && hasta) rows = rows.filter(r => r._dateObj >= desde && r._dateObj <= hasta);
 
-  request.onsuccess = (event) => {
-    let reportes = event.target.result;
+      const headers = [
+        "NP","FechaIng","Nombre","Ubicacion","Localidad","Tramites","FechaProg","FechaAut","FechaEnt",
+        "Telefono","OrdenPago","FechaOrden","Cantidad","Recibo","Servidor","Escan","NoLeg","NoHojas",
+        "ClaveExp","Observaciones","Estatus","ImporteTotal","Usuario","FechaGuardado","HoraGuardado"
+      ];
+      const body = rows.map(r => [
+        r.folio||"",
+        r.fechaIng || r.fecha_guardado || "",
+        r.nombre || "",
+        r.ubicacion || "",
+        r.localidad || "",
+        (r.items || []).map(it => `${it.code}:${it.cantidad}`).join(", "),
+        r.fechaProg || "", r.fechaAut || "", r.fechaEnt || "",
+        r.telefono || "", r.ordenPago || "", r.fechaOrd || "", r.cantidadGlobal || "",
+        r.reciboPago || "", r.servidor || "", r.escan || "", r.noLeg || "", r.noHojas || "",
+        r.claveExp || "", r.obs || "", r.estatus || "", (r.total||0).toFixed(2), r.usuario || "", r.fecha_guardado || "", r.hora_guardado || ""
+      ]);
 
-    if (reportes.length === 0) {
-      container.innerHTML = "<p>No hay reportes registrados aún.</p>";
-      return;
-    }
-
-    reportes.forEach((reporte, index) => {
-      let card = document.createElement("div");
-      card.classList.add("reporte-card");
-
-      card.innerHTML = `
-        <div class="reporte-header">Reporte #${index + 1}</div>
-        
-        <div class="reporte-section">
-          <h4>📌 Datos Generales</h4>
-          <p><b>Nombre:</b> ${reporte.nombre || "-"}</p>
-          <p><b>Fecha:</b> ${reporte.fecha || "-"}</p>
-          <p><b>Hora:</b> ${reporte.hora || "-"}</p>
-          <p><b>Usuario:</b> ${reporte.usuario || "-"}</p>
-        </div>
-
-        <div class="reporte-section">
-          <h4>🔒 Permisos</h4>
-          <p><b>Cámara:</b> ${reporte.permisos?.camara ? "✅ Permitido" : "❌ Denegado"}</p>
-          <p><b>Micrófono:</b> ${reporte.permisos?.microfono ? "✅ Permitido" : "❌ Denegado"}</p>
-          <p><b>Archivos:</b> ${reporte.permisos?.archivos ? "✅ Permitido" : "❌ Denegado"}</p>
-        </div>
-
-        <div class="reporte-section">
-          <h4>📄 Información Complementaria</h4>
-          <p><b>Notas:</b> ${reporte.notas || "Sin notas adicionales"}</p>
-          <p><b>Detalles:</b> ${reporte.detalles || "No especificados"}</p>
-        </div>
-      `;
-
-      container.appendChild(card);
-    });
-  };
-}
-
-// === Rellenar tabla de reportes ===
-function cargarReportes(filtroInicio, filtroFin) {
-  const tbody = document.querySelector("#tablaReportes tbody");
-  tbody.innerHTML = "";
-
-  dbPromise.then(db => {
-    const tx = db.transaction("tramites", "readonly");
-    return tx.objectStore("tramites").getAll();
-  }).then(registros => {
-    registros
-      .filter(reg => {
-        if (!filtroInicio || !filtroFin) return true;
-        const fecha = new Date(reg.fechaIng);
-        return fecha >= new Date(filtroInicio) && fecha <= new Date(filtroFin);
-      })
-      .forEach(reg => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${reg.np}</td>
-          <td>${reg.nombre}</td>
-          <td>${reg.fechaIng}</td>
-          <td>${reg.ubicacion || "-"}</td>
-          <td>${reg.localidad || "-"}</td>
-          <td>${reg.permisos.map(p => `${p.nombre} (${p.cantidad})`).join(", ")}</td>
-          <td>${reg.telefono || "-"}</td>
-          <td>${reg.ordenPago || "-"}</td>
-          <td>${reg.cantidadGlobal || "-"}</td>
-          <td>${reg.reciboPago || "-"}</td>
-          <td>${reg.estatus}</td>
-          <td>${reg.obs || "-"}</td>
-          <td>$${reg.importeTotal}</td>
-          <td>
-            ${reg.pdf ? `<button class="btn small" onclick="verPDF('${reg.pdf}')"><i class="fa-solid fa-file-pdf"></i> Ver</button>` : "Sin PDF"}
-          </td>
-        `;
-        tbody.appendChild(tr);
+      doc.autoTable({
+        head: [headers],
+        body,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [11,18,32] },
+        startY: 20,
+        margin: { left: 20, right: 20 }
       });
-  });
-}
-
-// Ver PDF en nueva ventana
-function verPDF(base64) {
-  const byteCharacters = atob(base64.split(",")[1]);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
+      doc.save(`reportes_${new Date().toISOString().slice(0,10)}.pdf`);
+      Swal.fire("Exportado", "PDF generado", "success");
+    };
+    req.onerror = () => Swal.fire("Error", "No se pudo exportar a PDF", "error");
   }
-  const byteArray = new Uint8Array(byteNumbers);
-  const blob = new Blob([byteArray], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
-}
 
-// Exportar Excel
-document.getElementById("btnExportExcel").addEventListener("click", () => {
-  const wb = XLSX.utils.table_to_book(document.getElementById("tablaReportes"), {sheet:"Reportes"});
-  XLSX.writeFile(wb, "reportes.xlsx");
-});
+  // expose recalcResumen for other contexts
+  window.recalcResumen = recalcResumen;
 
-// Exportar PDF con jsPDF
-document.getElementById("btnExportPDF").addEventListener("click", () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("l", "pt", "a4");
-  doc.text("Reportes de Trámites", 40, 30);
-  doc.autoTable({ html: "#tablaReportes", startY: 50 });
-  doc.save("reportes.pdf");
-});
-
-// Filtrar
-document.getElementById("btnFiltrar").addEventListener("click", () => {
-  const inicio = document.getElementById("filtroInicio").value;
-  const fin = document.getElementById("filtroFin").value;
-  cargarReportes(inicio, fin);
-});
-
-// Cargar inicial
-cargarReportes();
+})();

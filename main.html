@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="layout">
   <!-- Sidebar -->
@@ -37,7 +39,7 @@
 
     <!-- SECTION: Control de Pagos -->
     <section id="section-pagos" class="card section visible">
-      <form id="formPagos">
+      <form id="formPagos" enctype="multipart/form-data" onsubmit="return false;">
         <h2>Datos Generales</h2>
         <div class="grid-2 gap">
           <div class="field">
@@ -68,250 +70,39 @@
             <input type="checkbox" class="chk" data-code="LUS" data-cost="500" />
             <span>1. L.U.S</span>
             <input type="number" min="1" max="3" class="cantidad" data-for="LUS" placeholder="Cant." disabled />
+            <div class="mini-info" data-imp-for="LUS">$0.00</div>
           </label>
           <label class="tramite">
             <input type="checkbox" class="chk" data-code="CIZ" data-cost="300" />
             <span>2. C.I.Z</span>
             <input type="number" min="1" max="3" class="cantidad" data-for="CIZ" placeholder="Cant." disabled />
+            <div class="mini-info" data-imp-for="CIZ">$0.00</div>
           </label>
           <label class="tramite">
             <input type="checkbox" class="chk" data-code="CANO" data-cost="450" />
             <span>3. C.A.N.O</span>
             <input type="number" min="1" max="3" class="cantidad" data-for="CANO" placeholder="Cant." disabled />
+            <div class="mini-info" data-imp-for="CANO">$0.00</div>
           </label>
           <label class="tramite">
             <input type="checkbox" class="chk" data-code="CUS" data-cost="400" />
             <span>4. C.U.S</span>
             <input type="number" min="1" max="3" class="cantidad" data-for="CUS" placeholder="Cant." disabled />
+            <div class="mini-info" data-imp-for="CUS">$0.00</div>
           </label>
           <label class="tramite">
             <input type="checkbox" class="chk" data-code="VBCUS" data-cost="600" />
             <span>5. V.B.C.U.S</span>
             <input type="number" min="1" max="3" class="cantidad" data-for="VBCUS" placeholder="Cant." disabled />
+            <div class="mini-info" data-imp-for="VBCUS">$0.00</div>
           </label>
         </div>
 
-        <h2>Información Complementaria</h2>
-        <div class="grid-2 gap">
-          <div class="field">
-            <label for="fechaProg">Fecha Programada de Entrega</label>
-            <input id="fechaProg" type="date">
-          </div>
-          <div class="field">
-            <label for="fechaAut">Fecha de Autorización</label>
-            <input id="fechaAut" type="date">
-          </div>
-          <div class="field">
-            <label for="fechaEnt">Fecha de Entrega</label>
-            <input id="fechaEnt" type="date">
-          </div>
-          <div class="field">
-            <label for="telefono">Teléfono del Solicitante</label>
-            <input id="telefono" type="tel">
-          </div>
-          <div class="field">
-            <label for="ordenPago">Orden de Pago</label>
-            <input id="ordenPago" type="text">
-          </div>
-          <div class="field">
-            <label for="fechaOrd">Fecha Elaboración de Orden</label>
-            <input id="fechaOrd" type="date">
-          </div>
-          <div class="field">
-            <label for="cantidadGlobal">Cantidad (global)</label>
-            <input id="cantidadGlobal" type="number" min="1">
-          </div>
-          <div class="field">
-            <label for="reciboPago">Recibo de Pago</label>
-            <input id="reciboPago" type="text">
-          </div>
-          <div class="field">
-            <label for="servidor">Servidor Público</label>
-            <input id="servidor" type="text">
-          </div>
-          <div class="field">
-            <label for="escan">Escan</label>
-            <input id="escan" type="text">
-          </div>
-          <div class="field">
-            <label for="noLeg">No. de Leg</label>
-            <input id="noLeg" type="text">
-          </div>
-          <div class="field">
-            <label for="noHojas">No. de Hojas</label>
-            <input id="noHojas" type="number">
-          </div>
-          <div class="field">
-            <label for="claveExp">Clave del Expediente</label>
-            <input id="claveExp" type="text">
-          </div>
-          <div class="field">
-            <label for="estatus">Estatus</label>
-            <select id="estatus">
-              <option>Pendiente</option>
-              <option>Autorizado</option>
-              <option>Entregado</option>
-            </select>
-          </div>
-        </div>
-
+        <h2>Adjuntar PDF del expediente</h2>
         <div class="field">
-          <label for="obs">Observaciones</label>
-          <textarea id="obs" rows="3"></textarea>
-        </div>
-
-        <div class="grid-2 gap">
-          <div class="field">
-            <label for="importeTotal">Importe Total</label>
-            <input id="importeTotal" type="text" readonly class="readonly"/>
-          </div>
-          <div class="field">
-            <label for="noRecibo">No. Recibo</label>
-            <input id="noRecibo" type="text"/>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button type="button" class="btn" id="btnBuscar"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
-          <button type="button" class="btn success" id="btnGuardar"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-          <button type="button" class="btn info" id="btnActualizar"><i class="fa-solid fa-rotate"></i> Actualizar</button>
-          <button type="button" class="btn danger" id="btnEliminar"><i class="fa-solid fa-trash"></i> Eliminar</button>
-          <button type="reset" class="btn ghost" id="btnLimpiar">Limpiar</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- Resumen -->
-    <section class="card section visible">
-      <h2>Resumen de Trámites</h2>
-      <div class="table-wrap">
-        <table class="table" id="tablaResumen">
-          <thead>
-            <tr>
-              <th>Trámite</th>
-              <th>Cantidad</th>
-              <th>Importe</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td class="right bold">Total</td>
-              <td colspan="2" id="resTotal" class="bold">$0.00</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
-
-    <!-- SECTION: Buscar expediente (solo folio) -->
-    <section id="section-buscar" class="card section">
-      <h2>Buscar por Folio</h2>
-      <div class="grid-2 gap">
-        <div class="field">
-          <label for="buscarFolio">Folio</label>
-          <input id="buscarFolio" type="text" placeholder="Ingresa el folio exacto"/>
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <button class="btn" id="btnBuscarFolio"><i class="fa-solid fa-search"></i> Buscar</button>
-        </div>
-      </div>
-
-      <div id="resultadoBusqueda" class="desglose"></div>
-    </section>
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agenda Control de Pagos</title>
-  <link rel="stylesheet" href="styles.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body class="layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="brand">
-      <i class="fa-solid fa-book"></i>
-      <span>Menú</span>
-    </div>
-    <nav>
-      <a class="navitem active" data-section="pagos"><i class="fa-solid fa-list-check"></i> Control de pagos</a>
-      <a class="navitem" data-section="buscar"><i class="fa-solid fa-magnifying-glass"></i> Buscar expediente</a>
-      <a class="navitem" data-section="reportes"><i class="fa-solid fa-chart-line"></i> Reportes</a>
-      <a class="navitem" data-section="config"><i class="fa-solid fa-gear"></i> Configuración</a>
-      <a class="navitem" id="logoutLink" href="#"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</a>
-    </nav>
-  </aside>
-
-  <!-- Main content -->
-  <main class="content">
-    <header class="topbar">
-      <h1><i class="fa-solid fa-calendar-check"></i> Agenda Control de Pagos</h1>
-      <div class="topbar-actions">
-        <span id="userBadge" class="badge"></span>
-        <button id="toggleTheme" class="icon-btn" title="Tema oscuro/claro"><i class="fa-solid fa-moon"></i></button>
-      </div>
-    </header>
-
-    <!-- SECTION: Control de Pagos -->
-    <section id="section-pagos" class="card section visible">
-      <form id="formPagos">
-        <h2>Datos Generales</h2>
-        <div class="grid-2 gap">
-          <div class="field">
-            <label for="np">NP (Folio de Expediente)</label>
-            <input id="np" type="text" required/>
-          </div>
-          <div class="field">
-            <label for="fechaIng">Fecha de Ingreso</label>
-            <input id="fechaIng" type="date" required/>
-          </div>
-          <div class="field">
-            <label for="nombre">Nombre del Solicitante</label>
-            <input id="nombre" type="text" required/>
-          </div>
-          <div class="field">
-            <label for="ubicacion">Ubicación del Predio (Calles)</label>
-            <input id="ubicacion" type="text"/>
-          </div>
-          <div class="field">
-            <label for="localidad">Localidad / Colonia</label>
-            <input id="localidad" type="text"/>
-          </div>
-        </div>
-
-        <h2>Permisos Solicitados (selecciona y especifica cantidad)</h2>
-        <div class="tramites">
-          <label class="tramite">
-            <input type="checkbox" class="chk" data-code="LUS" data-cost="500" />
-            <span>1. L.U.S</span>
-            <input type="number" min="1" max="3" class="cantidad" data-for="LUS" placeholder="Cant." disabled />
-          </label>
-          <label class="tramite">
-            <input type="checkbox" class="chk" data-code="CIZ" data-cost="300" />
-            <span>2. C.I.Z</span>
-            <input type="number" min="1" max="3" class="cantidad" data-for="CIZ" placeholder="Cant." disabled />
-          </label>
-          <label class="tramite">
-            <input type="checkbox" class="chk" data-code="CANO" data-cost="450" />
-            <span>3. C.A.N.O</span>
-            <input type="number" min="1" max="3" class="cantidad" data-for="CANO" placeholder="Cant." disabled />
-          </label>
-          <label class="tramite">
-            <input type="checkbox" class="chk" data-code="CUS" data-cost="400" />
-            <span>4. C.U.S</span>
-            <input type="number" min="1" max="3" class="cantidad" data-for="CUS" placeholder="Cant." disabled />
-          </label>
-          <label class="tramite">
-            <input type="checkbox" class="chk" data-code="VBCUS" data-cost="600" />
-            <span>5. V.B.C.U.S</span>
-            <input type="number" min="1" max="3" class="cantidad" data-for="VBCUS" placeholder="Cant." disabled />
-          </label>
+          <label for="pdfFile">Archivo PDF (opcional)</label>
+          <input id="pdfFile" type="file" accept="application/pdf" />
+          <small class="muted">Se guardará el PDF dentro del expediente en la base local (IndexedDB).</small>
         </div>
 
         <h2>Información Complementaria</h2>
@@ -445,9 +236,41 @@
     </section>
 
     <!-- SECTION: Reportes -->
-    <section id="reportes" class="section">
-    <h2>📊 Reportes Registrados</h2>
-    <div id="reportesContainer" class="reportes-container"></div>
+    <section id="section-reportes" class="card section">
+      <h2>📊 Reportes Registrados</h2>
+
+      <div class="filters" style="align-items:center">
+        <div class="field">
+          <label for="repDesde">Desde</label>
+          <input id="repDesde" type="date"/>
+        </div>
+        <div class="field">
+          <label for="repHasta">Hasta</label>
+          <input id="repHasta" type="date"/>
+        </div>
+        <div style="display:flex;gap:8px;align-items:end">
+          <button class="btn" id="btnFiltrarRep"><i class="fa-solid fa-filter"></i> Filtrar</button>
+          <button class="btn success" id="btnExportarExcel"><i class="fa-solid fa-file-excel"></i> Exportar Excel</button>
+          <button class="btn info" id="btnExportarPDF"><i class="fa-solid fa-file-pdf"></i> Exportar PDF</button>
+        </div>
+      </div>
+
+      <div class="table-wrap report-table-wrap">
+        <table class="table report-table" id="tablaReportes">
+          <thead>
+            <tr>
+              <th>NP</th><th>Fecha Ingreso</th><th>Nombre</th><th>Ubicación</th><th>Localidad</th>
+              <th>Trámites (cod:cant)</th>
+              <th>Fecha Prog.</th><th>Fecha Aut.</th><th>Fecha Ent.</th><th>Teléfono</th>
+              <th>Orden Pago</th><th>Fecha Orden</th><th>Cantidad</th><th>Recibo</th>
+              <th>Servidor Púb</th><th>Escan</th><th>No. Leg</th><th>No. Hojas</th>
+              <th>Clave Exp</th><th>Observaciones</th><th>Estatus</th>
+              <th>Importe Total</th><th>Usuario</th><th>Fecha Guardado</th><th>Hora Guardado</th><th>PDF</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- SECTION: Configuración -->
@@ -457,7 +280,6 @@
       <p class="muted">Bases: DB_Usuarios (usuarios) y DB_Agenda (tramites)</p>
     </section>
   </main>
-
 
   <script src="script.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>

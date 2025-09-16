@@ -164,84 +164,75 @@ input:focus,textarea:focus{border-color:#3152a8}
   .card{padding:14px}
 }
 
-/* Contenedor de reportes */
-.reportes-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-top: 20px;
-}
+/* ---------------- Reportes - mejoras visuales ---------------- */
 
-/* Card de cada reporte */
-.reporte-card {
-  background: #fff;
+.report-table-wrap {
+  overflow: auto;
+  max-width: 100%;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  padding: 20px;
-  transition: transform 0.2s ease-in-out;
-}
-.reporte-card:hover {
-  transform: translateY(-4px);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg,#0f1830,#0b1220);
+  padding: 8px;
 }
 
-/* Cabecera */
-.reporte-header {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 12px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 5px;
+/* Make header sticky */
+.report-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: linear-gradient(180deg,var(--table-head),#081025);
+  color: var(--text);
+  border-bottom: 2px solid rgba(255,255,255,0.03);
 }
 
-/* Secciones internas */
-.reporte-section {
-  margin-bottom: 15px;
+/* Row styles */
+.report-table tbody tr {
+  background: linear-gradient(180deg,#081426,#071125);
+  transition: transform .08s ease, background .12s;
 }
-.reporte-section h4 {
-  font-size: 15px;
-  margin-bottom: 6px;
-  color: #444;
-  border-left: 4px solid #007BFF;
+.report-table tbody tr:nth-child(even) {
+  background: linear-gradient(180deg,#0a1a33,#061025);
+}
+.report-table tbody tr:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+
+/* Table text wrap and spacing */
+.report-table th, .report-table td {
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+/* Make the PDF button visually clear */
+.btn.pdf-btn {
+  background: linear-gradient(180deg,var(--info),#0aa7e0);
+  border: none;
+  color: #02212d;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn.pdf-btn:hover { transform: scale(1.02); box-shadow: 0 6px 18px rgba(10,167,224,0.12); }
+
+/* center cell helper */
+.report-table td.center { text-align: center; }
+
+/* small helper for mini importe next to cantidad inputs */
+.tramite .mini-info {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: right;
   padding-left: 8px;
 }
-.reporte-section p {
-  margin: 2px 0;
-  font-size: 14px;
-  color: #555;
-}
-/* Reportes */
-.reportes-container, .table-wrap {
-  margin-top: 1rem;
-  overflow-x: auto;
-}
 
-#tablaReportes {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-#tablaReportes th, #tablaReportes td {
-  border: 1px solid #34495e;
-  padding: 0.5rem;
-  text-align: center;
-  color: #fff;
-}
-
-#tablaReportes th {
-  background: #1b263b;
-}
-
-#tablaReportes tr:nth-child(even) {
-  background: #2c3e50;
-}
-
-#tablaReportes tr:hover {
-  background: #34495e;
-}
-
-.actions {
-  margin-top: 1rem;
-  display: flex;
-  gap: 1rem;
+/* responsive: allow vertical stacking on small screens */
+@media (max-width: 980px) {
+  .report-table th, .report-table td { font-size: 0.8rem; padding: 8px; }
+  .report-table { font-size: 0.85rem; }
+  .tramite { grid-template-columns: auto 1fr; gap: 8px; }
+  .tramite .mini-info { grid-column: 1 / -1; text-align:left; }
 }
