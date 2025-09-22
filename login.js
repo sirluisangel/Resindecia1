@@ -1,116 +1,96 @@
 (() => {
-  const DB_NAME = "DB_Usuarios";
-  const DB_VER = 1;
-  let dbUsers;
+const DB_NAME="DB_Usuarios",DB_VER=1;let dbUsers;
 
-  const openReq = indexedDB.open(DB_NAME, DB_VER);
-  openReq.onupgradeneeded = e => {
-    dbUsers = e.target.result;
-    if(!dbUsers.objectStoreNames.contains("usuarios")){
-      const store = dbUsers.createObjectStore("usuarios",{keyPath:"usuario"});
-      store.createIndex("usuario","usuario",{unique:true});
-    }
-  };
-  openReq.onsuccess = e => dbUsers = e.target.result;
-  openReq.onerror = () => Swal.fire("Error","No se pudo abrir la base de usuarios","error");
+const openReq=indexedDB.open(DB_NAME,DB_VER);
+openReq.onupgradeneeded=e=>{
+  dbUsers=e.target.result;
+  if(!dbUsers.objectStoreNames.contains("usuarios")){
+    const store=dbUsers.createObjectStore("usuarios",{keyPath:"usuario"});
+    store.createIndex("usuario","usuario",{unique:true});
+  }
+};
+openReq.onsuccess=e=>dbUsers=e.target.result;
+openReq.onerror=()=>Swal.fire("Error","No se pudo abrir la base de usuarios","error");
 
-  document.addEventListener("DOMContentLoaded",()=>{
-    // Tabs
-    document.querySelectorAll(".tab").forEach(btn=>{
-      btn.addEventListener("click",()=>{
-        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-        document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("active"));
-        btn.classList.add("active");
-        const tabName=btn.dataset.tab;
-        document.getElementById(tabName+"Form").classList.add("active");
-      });
+document.addEventListener("DOMContentLoaded",()=>{
+  // Tabs
+  document.querySelectorAll(".tab").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab+"Form").classList.add("active");
     });
-
-    // Mostrar/ocultar contraseña
-    document.querySelectorAll(".toggle-pass").forEach(btn=>{
-      btn.addEventListener("click",()=>{
-        const input=btn.previousElementSibling;
-        input.type = input.type === "password" ? "text" : "password";
-        btn.querySelector("i").classList.toggle("fa-eye-slash");
-      });
-    });
-
-    const registerForm=document.getElementById("registerForm");
-    registerForm?.addEventListener("submit",e=>{
-      e.preventDefault();
-      const usuario=document.getElementById("regUser").value.trim();
-      const pass=document.getElementById("regPass").value;
-      if(!usuario||!pass) return Swal.fire("Atención","Completa usuario y contraseña","warning");
-
-      const tx=dbUsers.transaction("usuarios","readwrite");
-      const store=tx.objectStore("usuarios");
-      const req=store.add({usuario,pass});
-      req.onsuccess=()=>{
-        Swal.fire({icon:"success",title:"Registrado",text:"Usuario creado",timer:1200,showConfirmButton:false})
-          .then(()=>{
-            localStorage.setItem("sessionUser",usuario);
-            window.location.href="main.html";
-          });
-      };
-      req.onerror=()=>Swal.fire("Error","El usuario ya existe","error");
-    });
-
-    const loginForm=document.getElementById("loginForm");
-    loginForm?.addEventListener("submit",e=>{
-      e.preventDefault();
-      const usuario=document.getElementById("loginUser").value.trim();
-      const pass=document.getElementById("loginPass").value;
-      if(!usuario||!pass) return Swal.fire("Atención","Completa usuario y contraseña","warning");
-
-      const tx=dbUsers.transaction("usuarios","readonly");
-      const store=tx.objectStore("usuarios");
-      const req=store.get(usuario);
-      req.onsuccess=()=>{
-        if(req.result && req.result.pass===pass){
-          localStorage.setItem("sessionUser",usuario);
-          Swal.fire({icon:"success",title:"Bienvenido",text:`Hola ${usuario}`,timer:900,showConfirmButton:false})
-            .then(()=>window.location.href="main.html");
-        } else Swal.fire("Error","Usuario o contraseña incorrectos","error");
-      };
-    });
-
-    // Export DB
-    document.getElementById("exportDB").addEventListener("click",()=>{
-      const tx=dbUsers.transaction("usuarios","readonly");
-      const store=tx.objectStore("usuarios");
-      const req=store.getAll();
-      req.onsuccess=()=>{
-        const data=JSON.stringify(req.result);
-        const blob=new Blob([data],{type:"application/json"});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement("a");
-        a.href=url; a.download="usuarios.json"; a.click();
-        URL.revokeObjectURL(url);
-      };
-    });
-
-    // Import DB
-    const importInput=document.getElementById("importDB");
-    document.getElementById("importDBBtn").addEventListener("click",()=>importInput.click());
-    importInput.addEventListener("change",(e)=>{
-      const file=e.target.files[0];
-      if(!file) return;
-      const reader=new FileReader();
-      reader.onload=function(evt){
-        try{
-          const users=JSON.parse(evt.target.result);
-          const tx=dbUsers.transaction("usuarios","readwrite");
-          const store=tx.objectStore("usuarios");
-          users.forEach(u=>store.put(u));
-          Swal.fire("Éxito","Usuarios importados","success");
-        } catch(err){Swal.fire("Error","Archivo inválido","error");}
-      };
-      reader.readAsText(file);
-    });
-
-    // Autologin
-    const sessionUser=localStorage.getItem("sessionUser");
-    if(sessionUser) window.location.href="main.html";
-
   });
+
+  // Toggle password
+  document.querySelectorAll(".toggle-pass").forEach(t=>{
+    t.addEventListener("click",()=>{
+      const input=t.previousElementSibling;
+      input.type = input.type==="password"?"text":"password";
+      t.innerHTML=`<i class="fa-solid fa-${input.type==="password"?"eye":"eye-slash"}"></i>`;
+    });
+  });
+
+  // Password strength
+  const regPass=document.getElementById("regPass");
+  const strengthBar=document.querySelector(".strength-bar");
+  regPass.addEventListener("input",()=>{
+    const val=regPass.value;
+    let strength=0;
+    if(val.length>=6) strength++;
+    if(/[A-Z]/.test(val)) strength++;
+    if(/[0-9]/.test(val)) strength++;
+    if(/[^A-Za-z0-9]/.test(val)) strength++;
+    strengthBar.style.width=`${(strength/4)*100}%`;
+  });
+
+  // Register
+  document.getElementById("registerForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const usuario=document.getElementById("regUser").value.trim();
+    const pass=document.getElementById("regPass").value;
+    if(!usuario||!pass) return Swal.fire("Atención","Completa usuario y contraseña","warning");
+    const tx=dbUsers.transaction("usuarios","readwrite");
+    const store=tx.objectStore("usuarios");
+    const req=store.add({usuario,pass});
+    req.onsuccess=()=>{localStorage.setItem("sessionUser",usuario);window.location.href="main.html";}
+    req.onerror=()=>Swal.fire("Error","El usuario ya existe o no se pudo registrar","error");
+  });
+
+  // Login
+  document.getElementById("loginForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const usuario=document.getElementById("loginUser").value.trim();
+    const pass=document.getElementById("loginPass").value;
+    if(!usuario||!pass) return Swal.fire("Atención","Completa usuario y contraseña","warning");
+    const tx=dbUsers.transaction("usuarios","readonly");
+    const store=tx.objectStore("usuarios");
+    const req=store.get(usuario);
+    req.onsuccess=()=>{if(req.result&&req.result.pass===pass){localStorage.setItem("sessionUser",usuario);window.location.href="main.html"} else Swal.fire("Error","Usuario o contraseña incorrectos","error")};
+    req.onerror=()=>Swal.fire("Error","No se pudo validar usuario","error");
+  });
+
+  // Auto-login
+  const sessionUser=localStorage.getItem("sessionUser");
+  if(sessionUser) window.location.href="main.html";
+
+  // Partículas fondo
+  const canvas=document.getElementById("particles");
+  const ctx=canvas.getContext("2d");
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  let particles=[];
+  for(let i=0;i<80;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+1,dx:(Math.random()-0.5)*0.5,dy:(Math.random()-0.5)*0.5})}
+  function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x+=p.dx; p.y+=p.dy;
+      if(p.x<0||p.x>canvas.width)p.dx*=-1;
+      if(p.y<0||p.y>canvas.height)p.dy*=-1;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle="rgba(91,140,255,0.6)";ctx.fill();ctx.closePath();
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+});
 })();
