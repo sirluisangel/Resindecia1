@@ -6,21 +6,18 @@
   <title>Ingreso | Desarrollo Urbano</title>
   <link rel="stylesheet" href="styles.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
-  <!-- Partículas -->
-  <div id="particles-js"></div>
-
+<body class="auth-layout">
   <div class="auth-card">
     <div class="auth-header">
       <i class="fa-solid fa-shield-halved"></i>
       <h1>Desarrollo Urbano</h1>
       <p class="muted">Accede o crea tu cuenta</p>
     </div>
-
     <div class="tabs">
       <button class="tab active" data-tab="login">Iniciar sesión</button>
       <button class="tab" data-tab="register">Registrarse</button>
@@ -29,13 +26,12 @@
     <!-- Login -->
     <form id="loginForm" class="auth-form tab-pane active" autocomplete="off">
       <div class="field">
-        <input id="loginUser" type="text" placeholder=" " required/>
         <label for="loginUser"><i class="fa-solid fa-user"></i> Usuario</label>
+        <input id="loginUser" type="text" required/>
       </div>
       <div class="field">
-        <input id="loginPass" type="password" placeholder=" " required/>
         <label for="loginPass"><i class="fa-solid fa-key"></i> Contraseña</label>
-        <i class="fa-solid fa-eye toggle-pass" data-target="loginPass"></i>
+        <input id="loginPass" type="password" required/>
       </div>
       <button class="btn primary w-full" type="submit">
         <i class="fa-solid fa-right-to-bracket"></i> Entrar
@@ -45,15 +41,13 @@
     <!-- Registro -->
     <form id="registerForm" class="auth-form tab-pane" autocomplete="off">
       <div class="field">
-        <input id="regUser" type="text" placeholder=" " required/>
         <label for="regUser"><i class="fa-solid fa-user-plus"></i> Usuario</label>
+        <input id="regUser" type="text" required/>
       </div>
       <div class="field">
-        <input id="regPass" type="password" placeholder=" " required/>
         <label for="regPass"><i class="fa-solid fa-lock"></i> Contraseña</label>
-        <i class="fa-solid fa-eye toggle-pass" data-target="regPass"></i>
+        <input id="regPass" type="password" required/>
       </div>
-      <div class="password-strength"><div class="strength-bar"></div></div>
       <button class="btn success w-full" type="submit">
         <i class="fa-solid fa-user-check"></i> Crear cuenta
       </button>
