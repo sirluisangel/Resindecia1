@@ -14,58 +14,54 @@
 <body>
   <canvas id="particles"></canvas>
   <div class="auth-container">
-    <div class="auth-card" id="authCard">
-      <div class="card-face card-front">
-        <div class="auth-header">
-          <i class="fa-solid fa-shield-halved"></i>
-          <h1>Desarrollo Urbano</h1>
-          <p class="muted">Inicia sesión</p>
-        </div>
-        <form id="loginForm" class="auth-form" autocomplete="off">
-          <div class="field">
-            <i class="fa-solid fa-user field-icon"></i>
-            <input id="loginUser" type="text" placeholder="Usuario" required/>
-          </div>
-          <div class="field">
-            <i class="fa-solid fa-lock field-icon"></i>
-            <input id="loginPass" type="password" placeholder="Contraseña" required/>
-            <i class="fa-solid fa-eye toggle-pass"></i>
-          </div>
-          <button class="btn primary w-full" type="submit">
-            <i class="fa-solid fa-right-to-bracket"></i> Entrar
-          </button>
-        </form>
-        <div class="switch-tab">
-          <p>¿No tienes cuenta? <span id="toRegister">Regístrate</span></p>
-        </div>
+    <div class="auth-card">
+      <div class="auth-header">
+        <i class="fa-solid fa-shield-halved"></i>
+        <h1>Desarrollo Urbano</h1>
+        <p class="muted">Accede o crea tu cuenta</p>
       </div>
 
-      <div class="card-face card-back">
-        <div class="auth-header">
-          <i class="fa-solid fa-user-plus"></i>
-          <h1>Desarrollo Urbano</h1>
-          <p class="muted">Crea tu cuenta</p>
-        </div>
-        <form id="registerForm" class="auth-form" autocomplete="off">
-          <div class="field">
-            <i class="fa-solid fa-user-plus field-icon"></i>
-            <input id="regUser" type="text" placeholder="Nuevo usuario" required/>
-          </div>
-          <div class="field">
-            <i class="fa-solid fa-key field-icon"></i>
-            <input id="regPass" type="password" placeholder="Contraseña" required/>
-            <i class="fa-solid fa-eye toggle-pass"></i>
-          </div>
-          <div class="password-strength"><div class="strength-bar"></div></div>
-          <button class="btn success w-full" type="submit">
-            <i class="fa-solid fa-user-check"></i> Crear cuenta
-          </button>
-        </form>
-        <div class="switch-tab">
-          <p>¿Ya tienes cuenta? <span id="toLogin">Inicia sesión</span></p>
-        </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Iniciar sesión</button>
+        <button class="tab" data-tab="register">Registrarse</button>
       </div>
 
+      <!-- Login -->
+      <form id="loginForm" class="auth-form tab-pane active" autocomplete="off">
+        <div class="field">
+          <i class="fa-solid fa-user field-icon"></i>
+          <input id="loginUser" type="text" placeholder="Usuario" required/>
+        </div>
+        <div class="field">
+          <i class="fa-solid fa-lock field-icon"></i>
+          <input id="loginPass" type="password" placeholder="Contraseña" required/>
+          <i class="fa-solid fa-eye toggle-pass"></i>
+        </div>
+        <button class="btn primary w-full" type="submit">
+          <i class="fa-solid fa-right-to-bracket"></i> Entrar
+        </button>
+      </form>
+
+      <!-- Registro -->
+      <form id="registerForm" class="auth-form tab-pane" autocomplete="off">
+        <div class="field">
+          <i class="fa-solid fa-user-plus field-icon"></i>
+          <input id="regUser" type="text" placeholder="Nuevo usuario" required/>
+        </div>
+        <div class="field">
+          <i class="fa-solid fa-key field-icon"></i>
+          <input id="regPass" type="password" placeholder="Contraseña" required/>
+          <i class="fa-solid fa-eye toggle-pass"></i>
+        </div>
+        <div class="password-strength"><div class="strength-bar"></div></div>
+        <button class="btn success w-full" type="submit">
+          <i class="fa-solid fa-user-check"></i> Crear cuenta
+        </button>
+      </form>
+
+      <footer class="auth-footer">
+        <small>© 2025 Agenda de Pagos — Desarrollo Urbano</small>
+      </footer>
     </div>
   </div>
   <script src="login.js"></script>
