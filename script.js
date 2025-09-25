@@ -30,11 +30,24 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================
 // Usuario / Login
 // ================================
+document.addEventListener("DOMContentLoaded", () => {
+    verificarUsuario();
+});
+
 function verificarUsuario() {
-  let usuario = localStorage.getItem("usuario") || "Invitado";
-  localStorage.setItem("usuario", usuario);
-  mostrarUsuario(usuario);
+    let usuario = localStorage.getItem("usuario");
+
+    if (!usuario) {
+        // Si no hay usuario guardado, usar "Invitado"
+        usuario = "Invitado";
+        localStorage.setItem("usuario", usuario);
+    }
+
+    // Mostrar en #userBadge
+    const badge = document.getElementById("userBadge");
+    if (badge) badge.textContent = usuario;
 }
+
 
 function mostrarUsuario() {
     const usuario = localStorage.getItem("usuario") || "Invitado";
@@ -45,17 +58,21 @@ function mostrarUsuario() {
 }
 
 function login(nombre) {
-    if (nombre && nombre.trim() !== "") {
-        localStorage.setItem("usuario", nombre.trim());
-        mostrarUsuario(); // actualiza la interfaz
+    nombre = nombre.trim();
+    if(nombre) {
+        localStorage.setItem("usuario", nombre);
+        const badge = document.getElementById("userBadge");
+        if(badge) badge.textContent = nombre;
+    } else {
+        verificarUsuario(); // si no hay nombre, mostrar Invitado
     }
 }
 
-
 function logout() {
     localStorage.removeItem("usuario");
-    mostrarUsuario(); // mostrará "Invitado"
+    verificarUsuario(); // actualiza badge a "Invitado"
 }
+
 
 
 // ================================
