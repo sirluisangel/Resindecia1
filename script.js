@@ -570,7 +570,24 @@ document.querySelectorAll(".cantidad").forEach(input => {
     importe.value = (cantidad * costo).toFixed(2);
   });
 });
+// ================================
+// Navegación secciones
+// ================================
+function initNav(){
+  $$('.navitem').forEach(a => {
+    a.addEventListener('click', ()=> {
+      $$('.navitem').forEach(n=>n.classList.remove('active'));
+      a.classList.add('active');
+      showSection(a.dataset.section);
+    });
+  });
+}
 
+function showSection(id){
+  $$('.section').forEach(s => s.classList.add('hidden'));
+  const el = document.getElementById(id);
+  if(el) el.classList.remove('hidden');
+}
 // ================================
 // Tema oscuro / claro
 // ================================
