@@ -663,7 +663,7 @@ function buscarYMostrarExpediente(np){
     btnForm.textContent = "Ir a Agenda de Pagos";
     btnForm.className = "btn btn-primary";
     btnForm.style.marginTop = "10px";
-    btnForm.addEventListener('click', ()=> showSection('agenda')); // asegúrate que tu sección de formulario tenga id="section-agenda"
+    btnForm.addEventListener('click', ()=> showSection('section-pagos')); // asegúrate que tu sección de formulario tenga id="section-agenda"
     cont.appendChild(btnForm);
 }
 
