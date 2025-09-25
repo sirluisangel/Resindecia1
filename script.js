@@ -342,15 +342,26 @@ async function actualizarRegistro(){
 }
 
 function deleteRegistro(np){
-  const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-  const idx = db.findIndex(r=>r.np===np);
-  if(idx>=0){
-    db.splice(idx,1);
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-    Swal.fire('Eliminado','Registro eliminado correctamente.','success');
+    // Borrar registro principal
+    const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+    const idx = db.findIndex(r => r.np === np);
+    if(idx >= 0){
+        db.splice(idx, 1);
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
+    }
+
+    // Borrar todos los registros históricos relacionados
+    const registros = JSON.parse(localStorage.getItem(REG_KEY) || '[]');
+    const nuevosRegistros = registros.filter(r => r.np !== np);
+    localStorage.setItem(REG_KEY, JSON.stringify(nuevosRegistros));
+
+    Swal.fire('Eliminado', `Expediente NP: ${np} y todos sus registros relacionados han sido eliminados.`, 'success');
+
+    // Actualizar vistas
     renderResumen();
-  } else Swal.fire('Error','NP no encontrado','warning');
+    renderReportes();
 }
+
 
 // ==============================
 // Buscar
@@ -603,19 +614,32 @@ function buscarYMostrarExpediente(np){
         return;
     }
 
-    // Construir tabla
-    const tramitesText = rec.tramites.map(t => `${t.code}:${t.cantidad}`).join(', ');
+    // Mapa de códigos a nombres completos
+    const tramitesNombres = {
+        "LUS": "L.U.S",
+        "CIZ": "C.I.Z",
+        "CANO": "C.A.N.O",
+        "CUS": "C.U.S",
+        "VBCUS": "V.B.C.U.S"
+    };
+
+    // Construir lista de permisos con nombres completos
+    const permisosList = rec.tramites.map(t => `${tramitesNombres[t.code] || t.code} (${t.cantidad})`).join(', ');
+
+    // Construir tabla simple
     const table = document.createElement('table');
     table.classList.add('expediente-table');
     table.innerHTML = `
         <thead>
             <tr>
-                <th>NP</th><th>Fecha Ingreso</th><th>Nombre</th><th>Ubicación</th><th>Localidad</th>
-                <th>Trámites (cod:cant)</th><th>Fecha Prog.</th><th>Fecha Aut.</th><th>Fecha Ent.</th>
-                <th>Teléfono</th><th>Orden Pago</th><th>Fecha Orden</th><th>Cantidad</th><th>Recibo</th>
-                <th>Servidor Púb</th><th>Escáner</th><th>No. Leg</th><th>No. Hojas</th><th>Clave Exp</th>
-                <th>Observaciones</th><th>Estatus</th><th>Importe Total</th><th>Usuario</th>
-                <th>Fecha Guardado</th><th>Hora Guardado</th>
+                <th>Folio (NP)</th>
+                <th>Fecha de Ingreso</th>
+                <th>Nombre del Solicitante</th>
+                <th>Ubicación del Predio</th>
+                <th>Localidad / Colonia</th>
+                <th>Permisos Solicitados</th>
+                <th>Usuario</th>
+                <th>Hora de Guardado</th>
             </tr>
         </thead>
         <tbody>
@@ -625,32 +649,15 @@ function buscarYMostrarExpediente(np){
                 <td>${rec.nombre || ''}</td>
                 <td>${rec.ubicacion || ''}</td>
                 <td>${rec.localidad || ''}</td>
-                <td>${tramitesText}</td>
-                <td>${rec.fechaProg || ''}</td>
-                <td>${rec.fechaAut || ''}</td>
-                <td>${rec.fechaEnt || ''}</td>
-                <td>${rec.telefono || ''}</td>
-                <td>${rec.ordenPago || ''}</td>
-                <td>${rec.fechaOrd || ''}</td>
-                <td>${rec.cantidadGlobal || ''}</td>
-                <td>${rec.reciboPago || ''}</td>
-                <td>${rec.servidor || ''}</td>
-                <td>${rec.escan || ''}</td>
-                <td>${rec.noLeg || ''}</td>
-                <td>${rec.noHojas || ''}</td>
-                <td>${rec.claveExp || ''}</td>
-                <td>${rec.obs || ''}</td>
-                <td>${rec.estatus || ''}</td>
-                <td>${rec.importeTotal || ''}</td>
+                <td>${permisosList}</td>
                 <td>${rec.usuario || ''}</td>
-                <td>${rec.fechaGuardado || ''}</td>
                 <td>${rec.horaGuardado || ''}</td>
             </tr>
         </tbody>
     `;
     cont.appendChild(table);
 
-    // PDF
+    // PDF (si existe)
     if(rec.pdfData){
         const pdfContainer = document.createElement('div');
         pdfContainer.style.marginTop = '10px';
@@ -663,14 +670,14 @@ function buscarYMostrarExpediente(np){
     btnForm.textContent = "Ir a Agenda de Pagos";
     btnForm.className = "btn btn-primary";
     btnForm.style.marginTop = "10px";
-    btnForm.addEventListener('click', ()=> showSection('section-pagos')); // asegúrate que tu sección de formulario tenga id="section-agenda"
+    btnForm.addEventListener('click', ()=> showSection('section-pagos')); 
     cont.appendChild(btnForm);
 }
 
 // ==============================
 // Evento buscar folio
 // ==============================
-$('#btnBuscarFolio')?.addEventListener('click', ()=>{
+$('#btnBuscarFolio')?.addEventListener('click', ()=> {
     const fol = $('#buscarFolio').value.trim();
     if(!fol){ Swal.fire('Aviso','Ingresa folio a buscar','warning'); return; }
     buscarYMostrarExpediente(fol);
