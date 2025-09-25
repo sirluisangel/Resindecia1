@@ -417,165 +417,126 @@ $('#logoutLink')?.addEventListener('click', e=>{
   });
 });
 
-/* ===============================
-   Funciones para Buscar y Reportes
-   =============================== */
-
-function abrirDBAgenda(callback) {
-    const request = indexedDB.open("DB_Agenda", 1);
-    request.onerror = e => console.error("Error al abrir DB_Agenda:", e);
-    request.onsuccess = e => {
-        const db = e.target.result;
-        callback(db);
-    };
-    request.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("tramites")) {
-            db.createObjectStore("tramites", { keyPath: "np" });
-        }
-    };
-}
-
 /* -------------------
-   Buscar expediente
+   Buscar folio en localStorage
 ------------------- */
-const btnBuscarFolio = document.getElementById("btnBuscarFolio");
-btnBuscarFolio.addEventListener("click", () => {
+document.getElementById("btnBuscarFolio").addEventListener("click", () => {
     const folio = document.getElementById("buscarFolio").value.trim();
     if (!folio) return Swal.fire("Aviso", "Ingresa un folio para buscar", "warning");
 
-    abrirDBAgenda(db => {
-        const tx = db.transaction("tramites", "readonly");
-        const store = tx.objectStore("tramites");
-        const request = store.get(folio);
+    const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+    const data = db.find(r => r.np === folio);
 
-        request.onsuccess = e => {
-            const data = e.target.result;
-            if (!data) {
-                Swal.fire("No encontrado", "El folio no existe en la base de datos", "error");
-                return;
-            }
+    if (!data) {
+        Swal.fire("No encontrado", "El folio no existe en la base de datos", "error");
+        return;
+    }
 
-            // Rellenar formulario
-            document.getElementById("np").value = data.np;
-            document.getElementById("fechaIng").value = data.fechaIng;
-            document.getElementById("nombre").value = data.nombre;
-            document.getElementById("ubicacion").value = data.ubicacion;
-            document.getElementById("localidad").value = data.localidad;
-            document.getElementById("estatus").value = data.estatus || "Pendiente";
-            
-            // Mostrar campos entregado si aplica
-            if (data.estatus === "Entregado") {
-                document.getElementById("entregadoFields").classList.remove("hidden");
-                document.getElementById("noHojas").value = data.noHojas || "";
-                document.getElementById("noLeg").value = data.noLeg || "";
-            } else {
-                document.getElementById("entregadoFields").classList.add("hidden");
-            }
+    // Rellenar formulario
+    document.getElementById("np").value = data.np;
+    document.getElementById("fechaIng").value = data.fechaIng;
+    document.getElementById("nombre").value = data.nombre;
+    document.getElementById("ubicacion").value = data.ubicacion || "";
+    document.getElementById("localidad").value = data.localidad || "";
+    document.getElementById("estatus").value = data.estatus || "Pendiente";
 
-            // Rellenar trámites
-            const tramites = ["LUS", "CIZ", "CANO", "CUS", "VBCUS"];
-            tramites.forEach(code => {
-                const tramite = document.querySelector(`.tramite[data-code="${code}"]`);
-                const checkbox = tramite.querySelector(".chk");
-                const cantidad = tramite.querySelector(".cantidad");
-                const importe = tramite.querySelector(".importe");
-                const regBtn = tramite.querySelector(".reg-btn");
+    // Mostrar campos entregado si aplica
+    if (data.estatus === "Entregado") {
+        document.getElementById("entregadoFields").classList.remove("hidden");
+        document.getElementById("noHojas").value = data.noHojas || "";
+        document.getElementById("noLeg").value = data.noLeg || "";
+    } else {
+        document.getElementById("entregadoFields").classList.add("hidden");
+    }
 
-                if (data.tramites && data.tramites[code]) {
-                    checkbox.checked = true;
-                    cantidad.value = data.tramites[code].cantidad;
-                    importe.value = data.tramites[code].importe;
-                    cantidad.disabled = false;
-                    regBtn.disabled = false;
-                } else {
-                    checkbox.checked = false;
-                    cantidad.value = "";
-                    importe.value = "0.00";
-                    cantidad.disabled = true;
-                    regBtn.disabled = true;
-                }
-            });
+    // Rellenar trámites
+    const tramites = ["LUS", "CIZ", "CANO", "CUS", "VBCUS"];
+    tramites.forEach(code => {
+        const tramite = document.querySelector(`.tramite[data-code="${code}"]`);
+        if (!tramite) return;
+        const checkbox = tramite.querySelector(".chk");
+        const cantidad = tramite.querySelector(".cantidad");
+        const precio = tramite.querySelector(".precio");
+        const importe = tramite.querySelector(".importe");
+        const regBtn = tramite.querySelector(".reg-btn");
 
-            // Otros campos
-            document.getElementById("fechaProg").value = data.fechaProg || "";
-            document.getElementById("fechaAut").value = data.fechaAut || "";
-            document.getElementById("fechaEnt").value = data.fechaEnt || "";
-            document.getElementById("telefono").value = data.telefono || "";
-            document.getElementById("ordenPago").value = data.ordenPago || "";
-            document.getElementById("fechaOrd").value = data.fechaOrd || "";
-            document.getElementById("cantidadGlobal").value = data.cantidadGlobal || "";
-            document.getElementById("reciboPago").value = data.reciboPago || "";
-            document.getElementById("servidor").value = data.servidor || "";
-            document.getElementById("escan").value = data.escan || "";
-            document.getElementById("claveExp").value = data.claveExp || "";
-            document.getElementById("obs").value = data.obs || "";
-            document.getElementById("importeTotal").value = data.importeTotal || "0.00";
-            document.getElementById("noRecibo").value = data.noRecibo || "";
-        };
+        const t = data.tramites.find(t => t.code === code);
+        if (t) {
+            checkbox.checked = true;
+            cantidad.value = t.cantidad;
+            precio.value = t.precio;
+            importe.value = round2(t.importe).toFixed(2);
+            cantidad.disabled = false;
+            precio.disabled = false;
+            regBtn.disabled = false;
+        } else {
+            checkbox.checked = false;
+            cantidad.value = "";
+            precio.value = "";
+            importe.value = "0.00";
+            cantidad.disabled = true;
+            precio.disabled = true;
+            regBtn.disabled = true;
+        }
     });
+
+    // Otros campos
+    document.getElementById("fechaProg").value = data.fechaProg || "";
+    document.getElementById("fechaAut").value = data.fechaAut || "";
+    document.getElementById("fechaEnt").value = data.fechaEnt || "";
+    document.getElementById("telefono").value = data.telefono || "";
+    document.getElementById("ordenPago").value = data.ordenPago || "";
+    document.getElementById("fechaOrd").value = data.fechaOrd || "";
+    document.getElementById("cantidadGlobal").value = data.cantidadGlobal || "";
+    document.getElementById("reciboPago").value = data.reciboPago || "";
+    document.getElementById("servidor").value = data.servidor || "";
+    document.getElementById("escan").value = data.escan || "";
+    document.getElementById("claveExp").value = data.claveExp || "";
+    document.getElementById("obs").value = data.obs || "";
+    document.getElementById("importeTotal").value = data.importeTotal || "0.00";
+    document.getElementById("noRecibo").value = data.noRecibo || "";
 });
 
-/* -------------------
-   Cargar reportes
-------------------- */
-function cargarReportes() {
-    abrirDBAgenda(db => {
-        const tx = db.transaction("tramites", "readonly");
-        const store = tx.objectStore("tramites");
-        const tbody = document.querySelector("#tablaReportes tbody");
-        tbody.innerHTML = "";
+function renderReportes(){
+    const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+    const tbody = document.querySelector("#tablaReportes tbody");
+    if(!tbody) return;
+    tbody.innerHTML = '';
 
-        store.openCursor().onsuccess = e => {
-            const cursor = e.target.result;
-            if (cursor) {
-                const data = cursor.value;
-                const tr = document.createElement("tr");
+    db.forEach(r => {
+        const tr = document.createElement("tr");
 
-                // Trámites: cod:cant
-                let tramitesText = "";
-                if (data.tramites) {
-                    for (const code in data.tramites) {
-                        tramitesText += `${code}:${data.tramites[code].cantidad} `;
-                    }
-                }
+        // Trámites en formato código:cantidad
+        let tramitesText = r.tramites.map(t => `${t.code}:${t.cantidad}`).join(' ');
 
-                tr.innerHTML = `
-                    <td>${data.np}</td>
-                    <td>${data.fechaIng || ""}</td>
-                    <td>${data.nombre || ""}</td>
-                    <td>${data.ubicacion || ""}</td>
-                    <td>${data.localidad || ""}</td>
-                    <td>${tramitesText}</td>
-                    <td>${data.fechaProg || ""}</td>
-                    <td>${data.fechaAut || ""}</td>
-                    <td>${data.fechaEnt || ""}</td>
-                    <td>${data.telefono || ""}</td>
-                    <td>${data.ordenPago || ""}</td>
-                    <td>${data.fechaOrd || ""}</td>
-                    <td>${data.cantidadGlobal || ""}</td>
-                    <td>${data.reciboPago || ""}</td>
-                    <td>${data.servidor || ""}</td>
-                    <td>${data.escan || ""}</td>
-                    <td>${data.noLeg || ""}</td>
-                    <td>${data.noHojas || ""}</td>
-                    <td>${data.claveExp || ""}</td>
-                    <td>${data.obs || ""}</td>
-                    <td>${data.estatus || ""}</td>
-                    <td>${data.importeTotal || ""}</td>
-                    <td>${data.usuario || ""}</td>
-                    <td>${data.fechaGuardado || ""}</td>
-                    <td>${data.horaGuardado || ""}</td>
-                    <td>${data.pdfExp || ""}</td>
-                    <td>—</td>
-                `;
+        tr.innerHTML = `
+            <td>${r.np}</td>
+            <td>${r.fechaIng || ""}</td>
+            <td>${r.nombre || ""}</td>
+            <td>${r.ubicacion || ""}</td>
+            <td>${r.localidad || ""}</td>
+            <td>${tramitesText}</td>
+            <td>${r.fechaProg || ""}</td>
+            <td>${r.fechaAut || ""}</td>
+            <td>${r.fechaEnt || ""}</td>
+            <td>${r.telefono || ""}</td>
+            <td>${r.ordenPago || ""}</td>
+            <td>${r.fechaOrd || ""}</td>
+            <td>${r.cantidadGlobal || ""}</td>
+            <td>${r.reciboPago || ""}</td>
+            <td>${r.servidor || ""}</td>
+            <td>${r.escan || ""}</td>
+            <td>${r.noLeg || ""}</td>
+            <td>${r.noHojas || ""}</td>
+            <td>${r.claveExp || ""}</td>
+            <td>${r.obs || ""}</td>
+            <td>${r.estatus || ""}</td>
+            <td>${r.importeTotal || ""}</td>
+            <td>${r.usuario || ""}</td>
+            <td>${r.fechaGuardado || ""}</td>
+            <td>${r.horaGuardado || ""}</td>
+        `;
 
-                tbody.appendChild(tr);
-                cursor.continue();
-            }
-        };
+        tbody.appendChild(tr);
     });
 }
-
-// Cargar reportes al iniciar
-document.addEventListener("DOMContentLoaded", cargarReportes);
