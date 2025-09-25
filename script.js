@@ -570,3 +570,27 @@ document.querySelectorAll(".cantidad").forEach(input => {
     importe.value = (cantidad * costo).toFixed(2);
   });
 });
+
+// ================================
+// Tema oscuro / claro
+// ================================
+function initTheme(){
+  const saved = localStorage.getItem('theme') || 'light';
+  setTheme(saved);
+
+  $('#toggleTheme')?.addEventListener('click', ()=> {
+    setTheme(document.body.classList.contains('dark')?'light':'dark');
+  });
+
+  const chk = $('#chkDarkMode');
+  if(chk){
+    chk.checked = saved==='dark';
+    chk.addEventListener('change', e=> setTheme(e.target.checked?'dark':'light'));
+  }
+}
+
+function setTheme(theme){
+  document.body.classList.toggle('dark', theme==='dark');
+  localStorage.setItem('theme', theme);
+  $('#chkDarkMode') && ($('#chkDarkMode').checked = theme==='dark');
+}
