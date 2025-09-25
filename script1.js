@@ -19,42 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderResumen();
   renderReportes(); // tabla de reportes (carga inicial)
 });
-  // ==============================
-  // Manejo de Usuario y Logout
-  // ==============================
-  document.addEventListener("DOMContentLoaded", () => {
-    const userBadge = document.getElementById("userBadge");
-    const logoutLink = document.getElementById("logoutLink");
 
-    // Recuperar usuario desde localStorage
-    const usuario = localStorage.getItem("usuario");
-
-    if (!usuario) {
-      // Si no hay usuario guardado -> mandar al login
-      window.location.href = "index.html";
-    } else {
-      // Mostrar nombre de usuario
-      userBadge.textContent = usuario;
-    }
-
-    // Cerrar sesión
-    logoutLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      Swal.fire({
-        title: "¿Cerrar sesión?",
-        text: "Se cerrará tu sesión actual",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Sí, cerrar",
-        cancelButtonText: "Cancelar"
-      }).then((result) => {
-        if (result.isConfirmed) {
-          localStorage.removeItem("usuario"); // borrar sesión
-          window.location.href = "index.html"; // redirigir login
-        }
-      });
-    });
-  });
 
 // Verificar usuario
 function verificarUsuario() {
