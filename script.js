@@ -209,19 +209,25 @@ async function registrarMonto(label){
 // ==============================
 async function verRegistrosTramite(code){
     const np = $('#np').value.trim();
+    const db = await openDB(); // función para abrir tu IndexedDB
     const tx = db.transaction('registros', 'readonly');
     const store = tx.objectStore('registros');
-    const rec = await store.get(np);
-    if(!rec || !rec.historico) return Swal.fire('Sin registros', 'No hay registros para este trámite', 'info');
+    const allRecords = await store.getAll();
 
-    const filtered = rec.historico.filter(r=>r.code===code);
-    if(filtered.length === 0) return Swal.fire('Sin registros', `No hay registros para ${code}`, 'info');
+    const filtered = allRecords.filter(r => r.code === code && (np ? r.np === np : true));
+
+    if(filtered.length === 0){
+        Swal.fire('Sin registros', `No hay registros para ${code}${np ? ' en NP: '+np : ''}.`, 'info');
+        return;
+    }
 
     const html = filtered.map(r=>`<div style="margin-bottom:8px">
-        <b>NP:</b> ${np} — <b>Importe:</b> ${currency(r.importe)} — <b>Cant:</b> ${r.cantidad} — <b>Fecha:</b> ${new Date(r.fecha).toLocaleString()}
+        <b>NP:</b> ${r.np} — <b>Importe:</b> ${currency(r.importe)} — <b>Cant:</b> ${r.cantidad} — <b>Fecha:</b> ${r.fechaGuardado} ${r.horaGuardado}
     </div>`).join('');
+
     Swal.fire({title:`Registros ${code}`, html, width:800});
 }
+
 
 // ==============================
 // Render resumen
@@ -459,4 +465,40 @@ function initFormButtons(){
         });
     });
 
+}
+
+// ==============================
+// Construir registro desde el formulario (IndexedDB)
+// ==============================
+async function construirRegistroDesdeForm(){
+    const np = $('#np').value.trim();
+    const fechaIng = $('#fechaIng').value;
+    const nombre = $('#nombre').value.trim();
+    if(!np || !fechaIng || !nombre) throw new Error('NP, Fecha de Ingreso y Nombre son obligatorios.');
+
+    const tramites = [];
+    $$('#tramitesContainer .tramite').forEach(label=>{
+        const chk = label.querySelector('.chk');
+        if(!chk.checked) return;
+        const code = label.dataset.code;
+        const cantidad = parseFloat(label.querySelector('.cantidad').value) || 0;
+        const precio = parseFloat(label.querySelector('.precio').value) || 0;
+        const importe = round2(cantidad*precio);
+        tramites.push({ code, cantidad, precio, importe });
+    });
+
+    const importeTotal = tramites.reduce((s,t)=> s + Number(t.importe||0),0);
+    const now = new Date();
+
+    return {
+        np,
+        fechaIng,
+        nombre,
+        tramites,
+        estatus: $('#estatus')?.value || 'Pendiente',
+        importeTotal: round2(importeTotal),
+        usuario: $("#userBadge")?.textContent.trim() || 'Admin',
+        fechaGuardado: now.toISOString().slice(0,10),
+        horaGuardado: now.toTimeString().slice(0,8)
+    };
 }
