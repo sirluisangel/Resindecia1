@@ -540,3 +540,99 @@ function renderReportes(){
         tbody.appendChild(tr);
     });
 }
+
+// ==============================
+// Exportar a Excel usando SheetJS (xlsx)
+// ==============================
+function exportarExcel(){
+    const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+    if(!db.length){ Swal.fire('Aviso','No hay registros para exportar','info'); return; }
+
+    const wsData = db.map(r => {
+        const tramitesText = r.tramites.map(t => `${t.code}:${t.cantidad}`).join(', ');
+        return {
+            NP: r.np,
+            Nombre: r.nombre,
+            FechaIngreso: r.fechaIng,
+            Ubicacion: r.ubicacion,
+            Localidad: r.localidad,
+            Tramites: tramitesText,
+            Estatus: r.estatus,
+            ImporteTotal: r.importeTotal,
+            Usuario: r.usuario,
+            FechaGuardado: r.fechaGuardado,
+            HoraGuardado: r.horaGuardado
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "AgendaPagos");
+    XLSX.writeFile(wb, `AgendaPagos_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ==============================
+// Visualizar expediente de forma amigable y PDF
+// ==============================
+function buscarYMostrarExpediente(np){
+    const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+    const rec = db.find(r=>r.np === np);
+    if(!rec){ Swal.fire('No encontrado','NP no existe','info'); return; }
+
+    // Construir HTML amigable
+    const tramitesHTML = rec.tramites.map(t=>`<li>${t.code} — Cant: ${t.cantidad}, Precio: ${currency(t.precio)}, Importe: ${currency(t.importe)}</li>`).join('');
+    let pdfBtn = '';
+    if(rec.pdfData){
+        pdfBtn = `<button id="btnVerPDF" class="swal2-confirm swal2-styled" style="margin-top:10px">Ver PDF</button>`;
+    }
+
+    const html = `
+        <div>
+            <b>NP:</b> ${rec.np}<br>
+            <b>Nombre:</b> ${rec.nombre}<br>
+            <b>Fecha Ingreso:</b> ${rec.fechaIng}<br>
+            <b>Ubicación:</b> ${rec.ubicacion || ''}<br>
+            <b>Localidad:</b> ${rec.localidad || ''}<br>
+            <b>Estatus:</b> ${rec.estatus || ''}<br>
+            <b>Trámites:</b>
+            <ul>${tramitesHTML}</ul>
+            <b>Importe Total:</b> ${currency(rec.importeTotal)}<br>
+            ${pdfBtn}
+            <button id="btnIrFormulario" class="swal2-confirm swal2-styled" style="margin-top:10px">Ir a Agenda de Pagos</button>
+        </div>
+    `;
+
+    Swal.fire({
+        title: `Expediente NP: ${rec.np}`,
+        html,
+        width: 800,
+        showConfirmButton: false
+    }).then(()=>{});
+
+    // PDF
+    setTimeout(()=>{
+        const btnPDF = document.getElementById("btnVerPDF");
+        if(btnPDF){
+            btnPDF.addEventListener('click', ()=>{
+                const win = window.open();
+                win.document.write(`<iframe src="${rec.pdfData}" style="width:100%;height:100vh;" frameborder="0"></iframe>`);
+            });
+        }
+        // Ir al formulario
+        const btnForm = document.getElementById("btnIrFormulario");
+        if(btnForm){
+            btnForm.addEventListener('click', ()=>{
+                showSection('agenda'); // Asegúrate de que tu sección de formulario tenga id="section-agenda"
+            });
+        }
+    },100);
+}
+
+// ==============================
+// Reemplazar evento de buscar folio
+// ==============================
+$('#btnBuscarFolio')?.addEventListener('click', ()=>{
+    const fol = $('#buscarFolio').value.trim();
+    if(!fol){ Swal.fire('Aviso','Ingresa folio a buscar','warning'); return; }
+    buscarYMostrarExpediente(fol);
+});
