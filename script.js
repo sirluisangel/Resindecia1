@@ -36,22 +36,27 @@ function verificarUsuario() {
   mostrarUsuario(usuario);
 }
 
-function mostrarUsuario(usuario){
-  const box = $("#userBox");
-  if(box) box.innerHTML = `<i class="fa fa-user-circle"></i> Bienvenido, <strong>${usuario}</strong>`;
+function mostrarUsuario() {
+    const usuario = localStorage.getItem("usuario") || "Invitado";
+    const badge = document.getElementById("userBadge");
+    if (badge) {
+        badge.textContent = usuario;
+    }
 }
 
-function login(nombre){
-  if(nombre && nombre.trim()!==""){
-    localStorage.setItem("usuario", nombre.trim());
-    mostrarUsuario(nombre.trim());
-  } else verificarUsuario();
+function login(nombre) {
+    if (nombre && nombre.trim() !== "") {
+        localStorage.setItem("usuario", nombre.trim());
+        mostrarUsuario(); // actualiza la interfaz
+    }
 }
 
-function logout(){
-  localStorage.removeItem("usuario");
-  verificarUsuario();
+
+function logout() {
+    localStorage.removeItem("usuario");
+    mostrarUsuario(); // mostrará "Invitado"
 }
+
 
 // ================================
 // Navegación secciones
