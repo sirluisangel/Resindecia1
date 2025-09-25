@@ -544,6 +544,9 @@ function renderReportes(){
 // ==============================
 // Exportar a Excel usando SheetJS (xlsx)
 // ==============================
+// ==============================
+// Exportar Excel con todas las columnas
+// ==============================
 function exportarExcel(){
     const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
     if(!db.length){ Swal.fire('Aviso','No hay registros para exportar','info'); return; }
@@ -552,11 +555,25 @@ function exportarExcel(){
         const tramitesText = r.tramites.map(t => `${t.code}:${t.cantidad}`).join(', ');
         return {
             NP: r.np,
-            Nombre: r.nombre,
             FechaIngreso: r.fechaIng,
+            Nombre: r.nombre,
             Ubicacion: r.ubicacion,
             Localidad: r.localidad,
             Tramites: tramitesText,
+            FechaProg: r.fechaProg,
+            FechaAut: r.fechaAut,
+            FechaEnt: r.fechaEnt,
+            Telefono: r.telefono,
+            OrdenPago: r.ordenPago,
+            FechaOrden: r.fechaOrd,
+            Cantidad: r.cantidadGlobal,
+            Recibo: r.reciboPago,
+            ServidorPub: r.servidor,
+            Escaner: r.escan,
+            NoLeg: r.noLeg,
+            NoHojas: r.noHojas,
+            ClaveExp: r.claveExp,
+            Observaciones: r.obs,
             Estatus: r.estatus,
             ImporteTotal: r.importeTotal,
             Usuario: r.usuario,
@@ -572,64 +589,86 @@ function exportarExcel(){
 }
 
 // ==============================
-// Visualizar expediente de forma amigable y PDF
+// Mostrar expediente en tabla en sección Buscar Expediente
 // ==============================
 function buscarYMostrarExpediente(np){
     const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-    const rec = db.find(r=>r.np === np);
-    if(!rec){ Swal.fire('No encontrado','NP no existe','info'); return; }
+    const rec = db.find(r => r.np === np);
+    const cont = document.getElementById("buscarExpedienteResult");
+    if(!cont) return;
+    cont.innerHTML = ''; // limpiar contenido previo
 
-    // Construir HTML amigable
-    const tramitesHTML = rec.tramites.map(t=>`<li>${t.code} — Cant: ${t.cantidad}, Precio: ${currency(t.precio)}, Importe: ${currency(t.importe)}</li>`).join('');
-    let pdfBtn = '';
-    if(rec.pdfData){
-        pdfBtn = `<button id="btnVerPDF" class="swal2-confirm swal2-styled" style="margin-top:10px">Ver PDF</button>`;
+    if(!rec){
+        cont.innerHTML = `<div class="no-result">No se encontró expediente NP: ${np}</div>`;
+        return;
     }
 
-    const html = `
-        <div>
-            <b>NP:</b> ${rec.np}<br>
-            <b>Nombre:</b> ${rec.nombre}<br>
-            <b>Fecha Ingreso:</b> ${rec.fechaIng}<br>
-            <b>Ubicación:</b> ${rec.ubicacion || ''}<br>
-            <b>Localidad:</b> ${rec.localidad || ''}<br>
-            <b>Estatus:</b> ${rec.estatus || ''}<br>
-            <b>Trámites:</b>
-            <ul>${tramitesHTML}</ul>
-            <b>Importe Total:</b> ${currency(rec.importeTotal)}<br>
-            ${pdfBtn}
-            <button id="btnIrFormulario" class="swal2-confirm swal2-styled" style="margin-top:10px">Ir a Agenda de Pagos</button>
-        </div>
+    // Construir tabla
+    const tramitesText = rec.tramites.map(t => `${t.code}:${t.cantidad}`).join(', ');
+    const table = document.createElement('table');
+    table.classList.add('expediente-table');
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>NP</th><th>Fecha Ingreso</th><th>Nombre</th><th>Ubicación</th><th>Localidad</th>
+                <th>Trámites (cod:cant)</th><th>Fecha Prog.</th><th>Fecha Aut.</th><th>Fecha Ent.</th>
+                <th>Teléfono</th><th>Orden Pago</th><th>Fecha Orden</th><th>Cantidad</th><th>Recibo</th>
+                <th>Servidor Púb</th><th>Escáner</th><th>No. Leg</th><th>No. Hojas</th><th>Clave Exp</th>
+                <th>Observaciones</th><th>Estatus</th><th>Importe Total</th><th>Usuario</th>
+                <th>Fecha Guardado</th><th>Hora Guardado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>${rec.np}</td>
+                <td>${rec.fechaIng || ''}</td>
+                <td>${rec.nombre || ''}</td>
+                <td>${rec.ubicacion || ''}</td>
+                <td>${rec.localidad || ''}</td>
+                <td>${tramitesText}</td>
+                <td>${rec.fechaProg || ''}</td>
+                <td>${rec.fechaAut || ''}</td>
+                <td>${rec.fechaEnt || ''}</td>
+                <td>${rec.telefono || ''}</td>
+                <td>${rec.ordenPago || ''}</td>
+                <td>${rec.fechaOrd || ''}</td>
+                <td>${rec.cantidadGlobal || ''}</td>
+                <td>${rec.reciboPago || ''}</td>
+                <td>${rec.servidor || ''}</td>
+                <td>${rec.escan || ''}</td>
+                <td>${rec.noLeg || ''}</td>
+                <td>${rec.noHojas || ''}</td>
+                <td>${rec.claveExp || ''}</td>
+                <td>${rec.obs || ''}</td>
+                <td>${rec.estatus || ''}</td>
+                <td>${rec.importeTotal || ''}</td>
+                <td>${rec.usuario || ''}</td>
+                <td>${rec.fechaGuardado || ''}</td>
+                <td>${rec.horaGuardado || ''}</td>
+            </tr>
+        </tbody>
     `;
-
-    Swal.fire({
-        title: `Expediente NP: ${rec.np}`,
-        html,
-        width: 800,
-        showConfirmButton: false
-    }).then(()=>{});
+    cont.appendChild(table);
 
     // PDF
-    setTimeout(()=>{
-        const btnPDF = document.getElementById("btnVerPDF");
-        if(btnPDF){
-            btnPDF.addEventListener('click', ()=>{
-                const win = window.open();
-                win.document.write(`<iframe src="${rec.pdfData}" style="width:100%;height:100vh;" frameborder="0"></iframe>`);
-            });
-        }
-        // Ir al formulario
-        const btnForm = document.getElementById("btnIrFormulario");
-        if(btnForm){
-            btnForm.addEventListener('click', ()=>{
-                showSection('agenda'); // Asegúrate de que tu sección de formulario tenga id="section-agenda"
-            });
-        }
-    },100);
+    if(rec.pdfData){
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.marginTop = '10px';
+        pdfContainer.innerHTML = `<iframe src="${rec.pdfData}" style="width:100%;height:600px;" frameborder="0"></iframe>`;
+        cont.appendChild(pdfContainer);
+    }
+
+    // Botón ir a formulario/agenda
+    const btnForm = document.createElement('button');
+    btnForm.textContent = "Ir a Agenda de Pagos";
+    btnForm.className = "btn btn-primary";
+    btnForm.style.marginTop = "10px";
+    btnForm.addEventListener('click', ()=> showSection('agenda')); // asegúrate que tu sección de formulario tenga id="section-agenda"
+    cont.appendChild(btnForm);
 }
 
 // ==============================
-// Reemplazar evento de buscar folio
+// Evento buscar folio
 // ==============================
 $('#btnBuscarFolio')?.addEventListener('click', ()=>{
     const fol = $('#buscarFolio').value.trim();

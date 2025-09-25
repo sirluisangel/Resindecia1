@@ -177,16 +177,25 @@
       </table>
     </div>
   </section>
-
-  <!-- SECCIÓN: Buscar expediente -->
-  <section id="section-buscar" class="card section hidden">
+  
+<!-- SECCIÓN: Buscar expediente -->
+<section id="section-buscar" class="card section hidden">
     <h2>Buscar por Folio</h2>
     <div class="grid-2 gap">
-      <div class="field"><label for="buscarFolio">Folio</label><input id="buscarFolio" type="text" placeholder="Ingresa el folio exacto"/></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="btnBuscarFolio"><i class="fa-solid fa-search"></i> Buscar</button></div>
+        <div class="field">
+            <label for="buscarFolio">Folio</label>
+            <input id="buscarFolio" type="text" placeholder="Ingresa el folio exacto"/>
+        </div>
+        <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn" id="btnBuscarFolio"><i class="fa-solid fa-search"></i> Buscar</button>
+        </div>
     </div>
-    <div id="resultadoBusqueda" class="desglose"></div>
-  </section>
+
+    <!-- Contenedor para mostrar resultados en tabla y PDF -->
+    <div id="buscarExpedienteResult" class="desglose"></div>
+</section>
+
 
 <section id="section-reportes" class="card section hidden">
   <h2>📊 Reportes Registrados</h2>
