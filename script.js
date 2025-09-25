@@ -30,50 +30,65 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================
 // Usuario / Login
 // ================================
-document.addEventListener("DOMContentLoaded", () => {
-    verificarUsuario();
-});
+function initApp() {
+    // Mostrar usuario al cargar
+    mostrarUsuario();
 
-function verificarUsuario() {
-    let usuario = localStorage.getItem("usuario");
+    // Navigation
+    $$(".navitem[data-section]").forEach(item => {
+        item.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            $$(".navitem").forEach(n => n.classList.remove("active"));
+            item.classList.add("active");
+            const section = item.dataset.section;
+            $$(".section").forEach(s => s.classList.remove("visible"));
+            $(`#section-${section}`)?.classList.add("visible");
+            if (section === "reportes") loadReportes();
+        });
+    });
 
-    if (!usuario) {
-        // Si no hay usuario guardado, usar "Invitado"
-        usuario = "Invitado";
-        localStorage.setItem("usuario", usuario);
-    }
+    // Logout
+    $("#logoutLink")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        logoutUsuario();
+    });
 
-    // Mostrar en #userBadge
-    const badge = document.getElementById("userBadge");
-    if (badge) badge.textContent = usuario;
+    // Opcional: botón login demo
+    $("#loginBtn")?.addEventListener("click", () => {
+        const nombre = prompt("Ingresa tu nombre de usuario:");
+        if(nombre) loginUsuario(nombre);
+    });
 }
-
 
 function mostrarUsuario() {
-    const usuario = localStorage.getItem("usuario") || "Invitado";
-    const badge = document.getElementById("userBadge");
-    if (badge) {
-        badge.textContent = usuario;
-    }
+    const user = localStorage.getItem("sessionUser") || "Invitado";
+    const badge = $("#userBadge");
+    if(badge) badge.textContent = user;
 }
 
-function login(nombre) {
+function loginUsuario(nombre) {
     nombre = nombre.trim();
     if(nombre) {
-        localStorage.setItem("usuario", nombre);
-        const badge = document.getElementById("userBadge");
-        if(badge) badge.textContent = nombre;
-    } else {
-        verificarUsuario(); // si no hay nombre, mostrar Invitado
+        localStorage.setItem("sessionUser", nombre);
+        mostrarUsuario();
+        Swal.fire('Bienvenido', `Hola ${nombre}`, 'success');
     }
 }
 
-function logout() {
-    localStorage.removeItem("usuario");
-    verificarUsuario(); // actualiza badge a "Invitado"
+function logoutUsuario() {
+    Swal.fire({
+        title: "Cerrar sesión?",
+        showCancelButton: true
+    }).then(r => {
+        if(r.isConfirmed) {
+            localStorage.removeItem("sessionUser");
+            mostrarUsuario(); // Actualiza badge a "Invitado"
+            Swal.fire('Sesión cerrada','Ahora estás como Invitado','info');
+            // Opcional: redirigir a login o recargar página
+            // window.location.href = "index.html";
+        }
+    });
 }
-
-
 
 // ================================
 // Navegación secciones

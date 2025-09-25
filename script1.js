@@ -30,33 +30,65 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================
 // Usuario / Login
 // ================================
-function verificarUsuario() {
-  let usuario = localStorage.getItem("usuario") || "Invitado";
-  localStorage.setItem("usuario", usuario);
-  mostrarUsuario(usuario);
+function initApp() {
+    // Mostrar usuario al cargar
+    mostrarUsuario();
+
+    // Navigation
+    $$(".navitem[data-section]").forEach(item => {
+        item.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            $$(".navitem").forEach(n => n.classList.remove("active"));
+            item.classList.add("active");
+            const section = item.dataset.section;
+            $$(".section").forEach(s => s.classList.remove("visible"));
+            $(`#section-${section}`)?.classList.add("visible");
+            if (section === "reportes") loadReportes();
+        });
+    });
+
+    // Logout
+    $("#logoutLink")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        logoutUsuario();
+    });
+
+    // Opcional: botón login demo
+    $("#loginBtn")?.addEventListener("click", () => {
+        const nombre = prompt("Ingresa tu nombre de usuario:");
+        if(nombre) loginUsuario(nombre);
+    });
 }
 
 function mostrarUsuario() {
-    const usuario = localStorage.getItem("usuario") || "Invitado";
-    const badge = document.getElementById("userBadge");
-    if (badge) {
-        badge.textContent = usuario;
+    const user = localStorage.getItem("sessionUser") || "Invitado";
+    const badge = $("#userBadge");
+    if(badge) badge.textContent = user;
+}
+
+function loginUsuario(nombre) {
+    nombre = nombre.trim();
+    if(nombre) {
+        localStorage.setItem("sessionUser", nombre);
+        mostrarUsuario();
+        Swal.fire('Bienvenido', `Hola ${nombre}`, 'success');
     }
 }
 
-function login(nombre) {
-    if (nombre && nombre.trim() !== "") {
-        localStorage.setItem("usuario", nombre.trim());
-        mostrarUsuario(); // actualiza la interfaz
-    }
+function logoutUsuario() {
+    Swal.fire({
+        title: "Cerrar sesión?",
+        showCancelButton: true
+    }).then(r => {
+        if(r.isConfirmed) {
+            localStorage.removeItem("sessionUser");
+            mostrarUsuario(); // Actualiza badge a "Invitado"
+            Swal.fire('Sesión cerrada','Ahora estás como Invitado','info');
+            // Opcional: redirigir a login o recargar página
+            // window.location.href = "index.html";
+        }
+    });
 }
-
-
-function logout() {
-    localStorage.removeItem("usuario");
-    mostrarUsuario(); // mostrará "Invitado"
-}
-
 
 // ================================
 // Navegación secciones
