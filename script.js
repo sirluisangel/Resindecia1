@@ -1,6 +1,7 @@
 // script.js
 (() => {
   const DB_NAME = "DB_Agenda";
+  const REG_KEY = 'DB_Registros';
   const DB_VER = 1;
   let dbAgenda;
 
