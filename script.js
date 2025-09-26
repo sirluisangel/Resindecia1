@@ -623,6 +623,9 @@ function buscarYMostrarExpediente(np){
         "VBCUS": "V.B.C.U.S"
     };
 
+    // Construir lista de permisos con nombres completos
+    const permisosList = rec.tramites.map(t => `${tramitesNombres[t.code] || t.code} (${t.cantidad})`).join(', ');
+
     // Construir tabla simple
     const table = document.createElement('table');
     table.classList.add('expediente-table');
